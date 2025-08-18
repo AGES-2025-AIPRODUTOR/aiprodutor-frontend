@@ -6,7 +6,6 @@ Este projeto contém todo o código relacionado à experiência do usuário, con
 
 ## ✨ Funcionalidades
 
-* Cadastro e gestão de produtores rurais.
 * Mapeamento interativo e visualização de áreas de plantio.
 * Registro e acompanhamento de safras.
 * Visualização de dados de produtividade.
