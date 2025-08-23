@@ -1,0 +1,13 @@
+services:
+  web:
+    image: node:20        # <- sem alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3001:3001"       # teu dev usa 3001 no package.json
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_API_URL=http://localhost:8080

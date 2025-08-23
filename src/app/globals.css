@@ -1,26 +1,72 @@
-@import "tailwindcss";
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* ============================= */
+  /* 🎨 PALETA DE CORES            */
+  /* ============================= */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Escala de verdes (primária) */
+  --green-25:  #FAFFFC; /* Fundo quase branco, usado p/ bg suave */
+  --green-50:  #EBFCF3;
+  --green-63:  #E2FBEC;
+  --green-75:  #D9F9E4;
+  --green-100: #C6F6D5;
+  --green-200: #9AE6B4;
+  --green-300: #68D391;
+  --green-400: #48BB78;
+  --green-500: #38A169; /* Verde principal  */
+  --green-600: #2F855A;
+  --green-700: #276749;
+  --green-800: #22543D;
+  --green-900: #1C4532; /* Verde mais escuro */
+              /* #0b5304  ele falou que gostou desse verde, mas esta fora da paleta que ele nos entregou */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* Status */
+  --warning:    #F6AD55; /* Atenção / aviso */
+  --warning-bg: #FFF5EB; /* Fundo p/ alertas */
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  --error:      #E53E3E; /* Erro / ações perigosas */
+  --error-bg:   #FED7D7;
+
+  --success:    var(--green-500); /* Sucesso / confirmação */
+  --success-bg: #F0FFF4;
+
+  --info:       #3182CE; /* Informações gerais */
+  --info-bg:    #EBF8FF;
+
+  /* Neutros / texto */
+  --neutral-0:   #FFFFFF; /* Branco padrão */
+  --neutral-900: #111111; /* Texto forte / preto */
+
+  /* ============================= */
+  /* ✍️ TIPOGRAFIA                 */
+  /* ============================= */
+
+  /* Fonte principal */
+  --font-family-base: "Inter", sans-serif;
+
+  /* Hierarquia tipográfica */
+  --font-display:   var(--font-family-base); /* Para grandes títulos (hero) */
+  --font-title:     var(--font-family-base); /* Títulos de seção */
+  --font-subtitle:  var(--font-family-base); /* Subtítulos e headings */
+  --font-body:      var(--font-family-base); /* Parágrafos padrão */
+  --font-small:     var(--font-family-base); /* Legendas, detalhes */
+
+  /* Escala de tamanhos */
+  --font-size-xs: 12px; /* textos auxiliares, notas */
+  --font-size-sm: 14px; /* legendas, subtítulos menores */
+  --font-size-md: 16px; /* parágrafos padrão */
+  --font-size-lg: 20px; /* subtítulos médios */
+  --font-size-xl: 24px; /* títulos */
+  --font-size-2xl: 32px; /* display pequeno */
+  --font-size-3xl: 40px; /* display grande */
+
+  /* Pesos */
+  --font-weight-regular:   400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+
+  /* Line-height */
+  --line-height-tight:   1.2;  /* títulos compactos */
+  --line-height-normal:  1.5;  /* texto padrão */
+  --line-height-relaxed: 1.75; /* parágrafos longos */
 }
