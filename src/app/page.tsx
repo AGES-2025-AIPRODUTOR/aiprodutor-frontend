@@ -10,6 +10,7 @@ export default function Home() {
         onPolygonComplete={({ areaM2 }) =>
           alert(`Área: ${(areaM2 / 1_000_000).toFixed(4)} km²`)
         }
+        
       />
     </main>
   );
