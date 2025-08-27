@@ -1,43 +1,55 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
 :root {
   /* ============================= */
   /* 🎨 PALETA DE CORES            */
   /* ============================= */
 
   /* Escala de verdes (primária) */
-  --green-25:  #FAFFFC; /* Fundo quase branco, usado p/ bg suave */
-  --green-50:  #EBFCF3;
-  --green-63:  #E2FBEC;
-  --green-75:  #D9F9E4;
+  --green-25: #FAFFFC;
+  /* Fundo quase branco, usado p/ bg suave */
+  --green-50: #EBFCF3;
+  --green-63: #E2FBEC;
+  --green-75: #D9F9E4;
   --green-100: #C6F6D5;
   --green-200: #9AE6B4;
   --green-300: #68D391;
   --green-400: #48BB78;
-  --green-500: #38A169; /* Verde principal  */
+  --green-500: #38A169;
+  /* Verde principal  */
   --green-600: #2F855A;
   --green-700: #276749;
   --green-800: #22543D;
-  --green-900: #1C4532; /* Verde mais escuro */
-              /* #0b5304  ele falou que gostou desse verde, mas esta fora da paleta que ele nos entregou */
+  --green-900: #1C4532;
+  /* Verde mais escuro */
+  /* #0b5304  ele falou que gostou desse verde, mas esta fora da paleta que ele nos entregou */
 
   /* Status */
-  --warning:    #F6AD55; /* Atenção / aviso */
-  --warning-bg: #FFF5EB; /* Fundo p/ alertas */
+  --warning: #F6AD55;
+  /* Atenção / aviso */
+  --warning-bg: #FFF5EB;
+  /* Fundo p/ alertas */
 
-  --error:      #E53E3E; /* Erro / ações perigosas */
-  --error-bg:   #FED7D7;
+  --error: #E53E3E;
+  /* Erro / ações perigosas */
+  --error-bg: #FED7D7;
 
-  --success:    var(--green-500); /* Sucesso / confirmação */
+  --success: var(--green-500);
+  /* Sucesso / confirmação */
   --success-bg: #F0FFF4;
 
-  --info:       #3182CE; /* Informações gerais */
-  --info-bg:    #EBF8FF;
+  --info: #3182CE;
+  /* Informações gerais */
+  --info-bg: #EBF8FF;
 
   /* Neutros / texto */
-  --neutral-0:   #FFFFFF; /* Branco padrão */
-  --neutral-900: #111111; /* Texto forte / preto */
+  --neutral-0: #FFFFFF;
+  /* Branco padrão */
+  --neutral-900: #111111;
+  /* Texto forte / preto */
 
   /* ============================= */
   /* ✍️ TIPOGRAFIA                 */
@@ -47,29 +59,111 @@
   --font-family-base: "Inter", sans-serif;
 
   /* Hierarquia tipográfica */
-  --font-display:   var(--font-family-base); /* Para grandes títulos (hero) */
-  --font-title:     var(--font-family-base); /* Títulos de seção */
-  --font-subtitle:  var(--font-family-base); /* Subtítulos e headings */
-  --font-body:      var(--font-family-base); /* Parágrafos padrão */
-  --font-small:     var(--font-family-base); /* Legendas, detalhes */
+  --font-display: var(--font-family-base);
+  /* Para grandes títulos (hero) */
+  --font-title: var(--font-family-base);
+  /* Títulos de seção */
+  --font-subtitle: var(--font-family-base);
+  /* Subtítulos e headings */
+  --font-body: var(--font-family-base);
+  /* Parágrafos padrão */
+  --font-small: var(--font-family-base);
+  /* Legendas, detalhes */
 
   /* Escala de tamanhos */
-  --font-size-xs: 12px; /* textos auxiliares, notas */
-  --font-size-sm: 14px; /* legendas, subtítulos menores */
-  --font-size-md: 16px; /* parágrafos padrão */
-  --font-size-lg: 20px; /* subtítulos médios */
-  --font-size-xl: 24px; /* títulos */
-  --font-size-2xl: 32px; /* display pequeno */
-  --font-size-3xl: 40px; /* display grande */
+  --font-size-xs: 12px;
+  /* textos auxiliares, notas */
+  --font-size-sm: 14px;
+  /* legendas, subtítulos menores */
+  --font-size-md: 16px;
+  /* parágrafos padrão */
+  --font-size-lg: 20px;
+  /* subtítulos médios */
+  --font-size-xl: 24px;
+  /* títulos */
+  --font-size-2xl: 32px;
+  /* display pequeno */
+  --font-size-3xl: 40px;
+  /* display grande */
 
   /* Pesos */
-  --font-weight-regular:   400;
-  --font-weight-medium:    500;
-  --font-weight-semibold:  600;
-  --font-weight-bold:      700;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 
   /* Line-height */
-  --line-height-tight:   1.2;  /* títulos compactos */
-  --line-height-normal:  1.5;  /* texto padrão */
-  --line-height-relaxed: 1.75; /* parágrafos longos */
+  --line-height-tight: 1.2;
+  /* títulos compactos */
+  --line-height-normal: 1.5;
+  /* texto padrão */
+  --line-height-relaxed: 1.75;
+  /* parágrafos longos */
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 220.9 39.3% 11%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 71.4% 4.1%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem
+  }
+
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 210 20% 98%;
+    --primary-foreground: 220.9 39.3% 11%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 216 12.2% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }
