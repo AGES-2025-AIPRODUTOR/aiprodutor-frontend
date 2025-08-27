@@ -1,7 +1,7 @@
 // src/app/layout.tsx
-import "./globals.css";
+import './globals.css';
 
-export const metadata = { title: "Ai Produtor" };
+export const metadata = { title: 'Ai Produtor' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
