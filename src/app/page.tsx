@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client';
 
 import { redirect, RedirectType } from 'next/navigation';
