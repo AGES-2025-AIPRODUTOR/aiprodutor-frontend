@@ -1,22 +1,31 @@
+// components/GoogleMap/index.tsx
 'use client';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Skeleton from './Skeleton';
 import ErrorView from './Error';
+import type { GoogleMapCoreProps } from './GoogleMap';
 
-// evita SSR e mostra Skeleton enquanto importa
-const CoreMap = dynamic(() => import('./GoogleMap'), {
-  ssr: false,
-  loading: () => <Skeleton />,
-});
+const CoreMap = dynamic<GoogleMapCoreProps>(
+  () => import('./GoogleMap'),
+  { ssr: false, loading: () => <Skeleton /> }
+);
 
-type Props = React.ComponentProps<typeof CoreMap>;
-
-export default function GoogleMapWrapper(props: Props) {
+export default function GoogleMapWrapper(props: GoogleMapCoreProps) {
   const [err, setErr] = useState<Error | null>(null);
-  const retry = useCallback(() => setErr(null), []);
+  const [nonce, setNonce] = useState(0); // força remontar no retry
 
-  if (err) return <ErrorView message={err.message} onRetry={retry} />;
+  if (err) {
+    return (
+      <ErrorView
+        message={err.message}
+        onRetry={() => {
+          setErr(null);
+          setNonce((n) => n + 1);
+        }}
+      />
+    );
+  }
 
-  return <CoreMap {...props} onError={setErr} />;
+  return <CoreMap key={nonce} {...props} onError={setErr} />;
 }

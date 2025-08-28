@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 
-type Props = {
+export type GoogleMapCoreProps  = {
   center?: google.maps.LatLngLiteral;
   zoom?: number;
   onReady?: (map: google.maps.Map) => void;
@@ -16,7 +16,7 @@ export default function GoogleMap({
   onReady,
   onError,
   height = '70vh',
-}: Props) {
+}: GoogleMapCoreProps ) {
   const divRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
