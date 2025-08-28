@@ -1,3 +1,6 @@
-export default function Cadastro() {
-  return <>Meu Cadastro</>;
+'use client'
+import Cadastro from "./tela";
+
+export default function Cadastro1() {
+  return <><Cadastro></Cadastro></>;
 }
