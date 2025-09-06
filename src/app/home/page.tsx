@@ -1,6 +1,6 @@
 import { ChartArea, FileText, History, MapPin, TreeDeciduous, UserRound } from 'lucide-react';
-import HomeCard from './homeCard';
-import HomeHeaderTitle from './homeHeaderTitle';
+import HomeCard from './components/homeCard';
+import HomeHeaderTitle from './components/homeHeaderTitle';
 
 export default function Home() {
   const itemIconSizing = 'w-8 h-8 sm:w-10 sm:h-10';
@@ -44,7 +44,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="h-screen sm:max-w-xl mx-auto">
+    <div className="sm:max-w-xl mx-auto">
       <HomeHeaderTitle />
       <div className="p-3 gap-3 items-center flex flex-wrap justify-around">
         {homeItems.map((item) => {

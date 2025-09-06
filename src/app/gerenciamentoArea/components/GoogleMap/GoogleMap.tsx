@@ -59,5 +59,5 @@ export default function GoogleMap({
     };
   }, [center, zoom, onReady, onError]);
 
-  return <div ref={divRef} style={{ width: '100%', height }} />;
+  return <div ref={divRef} style={{ width: '100%', height: '100%' }} />;
 }

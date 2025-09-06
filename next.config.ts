@@ -1,8 +1,9 @@
 // next.config.ts
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: 'standalone',
+  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev'],
   // se usa imagens remotas, configura domains aqui
   // images: { remotePatterns: [...] }
 };
