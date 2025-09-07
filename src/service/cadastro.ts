@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import { handleAxiosError, ResponseApi } from '@/lib/response';
 
-export type ProductorEntity = {
+export type AgriculturalProducerEntity = {
   name: string;
   document: string;
   phone: string;
@@ -13,7 +13,9 @@ export type ProductorEntity = {
   complement?: string;
 };
 
-export const createProductor = async (data: ProductorEntity): Promise<ResponseApi<string>> => {
+export const createAgriculturalProducer = async (
+  data: AgriculturalProducerEntity
+): Promise<ResponseApi<string>> => {
   try {
     const response = await api.post<string>('/api/v1/producers', {
       ...data,

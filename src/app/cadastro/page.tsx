@@ -8,9 +8,8 @@ import { toast } from 'sonner';
 import { ChevronLeft } from 'lucide-react';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { useState, useEffect } from 'react';
-
-import { useProdutorContext } from '@/context/ProdutorContext';
-import { createProductor, ProductorEntity } from '@/service/cadastro';
+import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
+import { createAgriculturalProducer, AgriculturalProducerEntity } from '@/service/cadastro';
 import { formatCep, formatCpfCnpj, formatTelefone, validateCpfCnpj } from '@/lib/utils';
 
 type Inputs = {
@@ -39,7 +38,7 @@ export default function Cadastro() {
   const [loadingCep, setLoadingCep] = useState<boolean>(false);
   const [submetido, setSubmetido] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { data, setData } = useProdutorContext();
+  const { data, setData } = useAgriculturalProducerContext();
 
   const {
     register,
@@ -74,7 +73,7 @@ export default function Cadastro() {
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
     if (submetido) return;
 
-    const payload: ProductorEntity = {
+    const payload: AgriculturalProducerEntity = {
       name: data.nome,
       document: data.cpfCnpj,
       phone: data.telefone,
@@ -87,7 +86,7 @@ export default function Cadastro() {
     };
 
     setIsLoading(true);
-    const { isSuccess, errorMessage } = await createProductor(payload);
+    const { isSuccess, errorMessage } = await createAgriculturalProducer(payload);
     if (isSuccess) {
       toast.success('Produtor criado com Sucesso.');
       setData({
