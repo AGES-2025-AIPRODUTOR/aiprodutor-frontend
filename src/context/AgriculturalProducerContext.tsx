@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type ProdutorData = {
+type AgriculturalProducerData = {
   nome: string;
   cpfCnpj: string;
   telefone: string;
@@ -14,14 +14,16 @@ type ProdutorData = {
   email: string;
 };
 
-type ProdutorContextType = {
-  data: ProdutorData;
-  setData: (data: ProdutorData) => void;
+type AgriculturalProducerContextType = {
+  data: AgriculturalProducerData;
+  setData: (data: AgriculturalProducerData) => void;
 };
 
-const ProdutorContext = createContext<ProdutorContextType | undefined>(undefined);
+const AgriculturalProducerContext = createContext<AgriculturalProducerContextType | undefined>(
+  undefined
+);
 
-const emptyData: ProdutorData = {
+const emptyData: AgriculturalProducerData = {
   nome: '',
   cpfCnpj: '',
   telefone: '',
@@ -47,8 +49,8 @@ const emptyData: ProdutorData = {
  * - Estado global: Compartilha dados entre componentes via Context
  */
 
-export const ProdutorProvider = ({ children }: { children: ReactNode }) => {
-  const [data, setData] = useState<ProdutorData>(emptyData);
+export const AgriculturalProducerProvider = ({ children }: { children: ReactNode }) => {
+  const [data, setData] = useState<AgriculturalProducerData>(emptyData);
 
   // Recupera dados salvos do localStorage na inicialização
   // Importante: Como não temos login,  é o único jeito de manter dados entre sessões
@@ -71,11 +73,18 @@ export const ProdutorProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [data]);
 
-  return <ProdutorContext.Provider value={{ data, setData }}>{children}</ProdutorContext.Provider>;
+  return (
+    <AgriculturalProducerContext.Provider value={{ data, setData }}>
+      {children}
+    </AgriculturalProducerContext.Provider>
+  );
 };
 
-export const useProdutorContext = () => {
-  const context = useContext(ProdutorContext);
-  if (!context) throw new Error('useProdutorContext must be used within a ProdutorProvider');
+export const useAgriculturalProducerContext = () => {
+  const context = useContext(AgriculturalProducerContext);
+  if (!context)
+    throw new Error(
+      'useAgriculturalProducerContext must be used within a AgriculturalProducerProvider'
+    );
   return context;
 };
