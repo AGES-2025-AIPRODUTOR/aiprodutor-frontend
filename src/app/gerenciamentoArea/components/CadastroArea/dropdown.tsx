@@ -55,7 +55,7 @@ export default function Dropdown({ options, value, onChange }: DropdownProps) {
             <li
               key={index}
               onClick={() => onChange({ selected: opt, open: false })}
-              className="px-2 py-2 cursor-pointer hover:bg-gray-100 text-gray-400"
+              className="px-2 py-2 cursor-pointer hover:bg-gray-100 text-gray-400 text-left"
             >
               {opt}
             </li>

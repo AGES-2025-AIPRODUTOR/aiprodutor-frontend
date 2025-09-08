@@ -5,9 +5,10 @@ import Dropdown from "./dropdown";
 
 export type CadastroAreaProps = {
   onError?: (err: Error) => void;
+  menuHeight?: number; // altura do menu para descontar (não usamos mais no height fixo)
 };
 
-export default function CadastroArea({ onError }: CadastroAreaProps) {
+export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: CadastroAreaProps) {
   const [nomeArea, setNomeArea] = useState("");
   const [cultivo, setCultivo] = useState("");
   const [solo, setSolo] = useState({ selected: "Selecione", open: false });
@@ -35,10 +36,11 @@ export default function CadastroArea({ onError }: CadastroAreaProps) {
   };
 
   const handleSubmit = () => {
-    if (!nomeArea.trim() ||
-        !solo.selected || solo.selected === "Selecione" ||
-        !irrigacao.selected || irrigacao.selected === "Selecione" ||
-        !cultivo.trim()
+    if (
+      !nomeArea.trim() ||
+      !solo.selected || solo.selected === "Selecione" ||
+      !irrigacao.selected || irrigacao.selected === "Selecione" ||
+      !cultivo.trim()
     ) {
       alert("Todos os campos devem ser preenchidos!");
       return;
@@ -65,41 +67,26 @@ export default function CadastroArea({ onError }: CadastroAreaProps) {
       .catch(err => onError?.(err));
   }, []);
 
-  const ArrowLeftIcon = ({ size = 20, className = "" }) => (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-
   return (
-    <div className="w-full min-h-screen bg-[var(--neutral-0)] font-[var(--font-family-base)]">
+    <div className="max-w-md mx-auto bg-[var(--neutral-0)] font-[var(--font-family-base)] flex flex-col">
+
       {/* Cabeçalho */}
-      <div className="w-full flex flex-row items-center justify-between px-4 sm:px-8 mt-10 mb-4">
-        <ArrowLeftIcon size={25} className="text-gray-800" />
+      <div className="flex justify-center mt-8 mb-3">
         <div className="flex items-center gap-2">
           <img src="/circle-alert.svg" alt="Informação" className="w-5" />
           <p className="text-base font-bold text-[#6D6A6D]">Complete as informações</p>
         </div>
-        <div className="w-4 h-4 invisible" />
       </div>
 
       {/* Formulário */}
-      <div className="flex flex-col justify-between h-[calc(100vh-120px)] items-center px-4 sm:px-0 py-6">
-        <div className="w-full max-w-sm flex flex-col gap-6">
+      <div
+        className="flex flex-col justify-between items-center px-4 sm:px-0 max-h-[600px] overflow-y-auto"
+      >
+        <div className="w-full max-w-sm flex flex-col gap-4 py-4 flex-1">
 
           {/* Nome da Área */}
           <div className="flex flex-col gap-1 w-full px-2">
-            <div className="flex px-1 justify-between items-center text-gray-400 text-md">
+            <div className="flex px-1 justify-between text-gray-400 text-md">
               <label className="px-1">Nome da área:</label>
               <span className={`text-xs ${nomeArea.length >= warningLimitNome ? "text-red-500" : "text-gray-400"}`}>
                 {nomeArea.length}/{maxLengthNome}
@@ -115,14 +102,14 @@ export default function CadastroArea({ onError }: CadastroAreaProps) {
           </div>
 
           {/* Dropdown Solo */}
-          <div className="flex flex-col gap-1 px-2 text-md text-gray-400">
-            <label className="px-1">Tipo de solo:</label>
+          <div className="flex flex-col gap-1 w-full px-2 text-md text-gray-400">
+            <label className="px-1 text-left">Tipo de solo:</label>
             <Dropdown options={solos} value={solo} onChange={setSolo} />
           </div>
 
           {/* Dropdown Irrigação */}
-          <div className="flex flex-col gap-1 w-full px-2 text-gray-400 text-md">
-            <label className="px-1">Tipo de irrigação:</label>
+          <div className="flex flex-col gap-1 w-full px-2 text-md text-gray-400">
+            <label className="px-1 text-left">Tipo de irrigação:</label>
             <Dropdown options={irrigacoes} value={irrigacao} onChange={setIrrigacao} />
           </div>
 
@@ -142,22 +129,22 @@ export default function CadastroArea({ onError }: CadastroAreaProps) {
               className="border border-gray-300 text-gray-600 h-9 px-2 focus:outline-none rounded select-text"
             />
           </div>
-        </div>
 
-        {/* Tamanho da área */}
-        <div className="text-center mt-2 flex flex-col gap-1">
-          <span className="text-base font-bold text-[#6D6A6D]">Tamanho</span>
-          <span className="text-sm text-gray-400">2.5ha (25000m²)</span>
-        </div>
+          {/* Tamanho da área */}
+          <div className="text-center mt-1 flex flex-col gap-0.5">
+            <span className="text-lg font-bold text-[#6D6A6D]">Tamanho</span>
+            <span className="text-md text-gray-400">2.5ha (25000m²)</span>
+          </div>
 
-        {/* Botão Concluir */}
-        <div className="flex justify-center mt-2">
-          <button
-            onClick={handleSubmit}
-            className="bg-green-600 text-green-50 min-h-12 min-w-44 rounded border-none cursor-pointer hover:bg-green-700"
-          >
-            Concluir
-          </button>
+          {/* Botão Concluir */}
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={handleSubmit}
+              className="bg-green-600 text-green-50 min-h-12 min-w-44 rounded border-none cursor-pointer hover:bg-green-700"
+            >
+              Concluir
+            </button>
+          </div>
         </div>
       </div>
     </div>
