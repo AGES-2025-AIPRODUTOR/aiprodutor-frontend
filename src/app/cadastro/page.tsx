@@ -13,15 +13,15 @@ import { createAgriculturalProducer, AgriculturalProducerEntity } from '@/servic
 import { formatCep, formatCpfCnpj, formatTelefone, validateCpfCnpj } from '@/lib/utils';
 
 type Inputs = {
-  nome: string;
+  name: string;
   cpfCnpj: string;
-  telefone: string;
+  phone: string;
   cep: string;
-  cidadeUf: string;
-  bairro: string;
-  rua: string;
-  numero: string;
-  complemento?: string;
+  cityState: string;
+  neighborhood: string;
+  street: string;
+  number: string;
+  complement?: string;
   email: string;
 };
 
@@ -39,7 +39,6 @@ export default function Cadastro() {
   const [submetido, setSubmetido] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { data, setData } = useAgriculturalProducerContext();
-
   const {
     register,
     handleSubmit,
@@ -48,21 +47,21 @@ export default function Cadastro() {
     formState: { errors },
   } = useForm<Inputs>({
     defaultValues: {
-      nome: '',
+      name: '',
       cpfCnpj: '',
-      telefone: '',
+      phone: '',
       cep: '',
-      cidadeUf: '',
-      bairro: '',
-      rua: '',
-      numero: '',
-      complemento: '',
+      cityState: '',
+      neighborhood: '',
+      street: '',
+      number: '',
+      complement: '',
       email: '',
     },
   });
 
   useEffect(() => {
-    if (data.nome) {
+    if (data.name) {
       Object.entries(data).forEach(([key, value]) => {
         setValue(key as keyof Inputs, value);
       });
@@ -74,34 +73,22 @@ export default function Cadastro() {
     if (submetido) return;
 
     const payload: AgriculturalProducerEntity = {
-      name: data.nome,
+      name: data.name,
       document: data.cpfCnpj,
-      phone: data.telefone,
+      phone: data.phone,
       email: data.email,
       zipCode: data.cep,
-      city: data.cidadeUf.split(' - ')[0] || '',
-      street: data.rua,
-      number: data.numero,
-      complement: data.complemento || undefined,
+      city: data.cityState.split(' - ')[0] || '',
+      street: data.street,
+      number: data.number,
+      complement: data.complement || undefined,
     };
 
     setIsLoading(true);
-    const { isSuccess, errorMessage } = await createAgriculturalProducer(payload);
+
+    const { isSuccess, errorMessage } = await createAgriculturalProducer(payload, setData);
     if (isSuccess) {
       toast.success('Produtor criado com Sucesso.');
-      setData({
-        nome: data.nome,
-        cpfCnpj: data.cpfCnpj,
-        telefone: data.telefone,
-        cep: data.cep,
-        cidadeUf: data.cidadeUf,
-        bairro: data.bairro,
-        rua: data.rua,
-        numero: data.numero,
-        complemento: data.complemento ?? '',
-        email: data.email,
-      });
-
       setIsLoading(false);
       router.push('/home');
     } else {
@@ -120,9 +107,9 @@ export default function Cadastro() {
       const data: ViaCepResponse = await res.json();
       if (data.erro) return;
 
-      setValue('cidadeUf', `${data.localidade} - ${data.uf}`);
-      setValue('bairro', data.bairro);
-      setValue('rua', data.logradouro);
+      setValue('cityState', `${data.localidade} - ${data.uf}`);
+      setValue('neighborhood', data.bairro);
+      setValue('street', data.logradouro);
     } catch (err) {
       console.error(err);
     } finally {
@@ -145,16 +132,16 @@ export default function Cadastro() {
         <div className="px-4 space-y-4 overflow-y-auto flex-1">
           {/* Nome */}
           <div className="space-y-2">
-            <Label htmlFor="nome">Nome: *</Label>
+            <Label htmlFor="name">Nome: *</Label>
             <Input
-              id="nome"
+              id="name"
               type="text"
               placeholder="Digite seu nome completo"
               className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
-              {...register('nome', { required: 'Nome é obrigatório' })}
+              {...register('name', { required: 'Nome é obrigatório' })}
             />
-            {errors.nome && <span className="text-red-500 text-sm">{errors.nome.message}</span>}
+            {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
           </div>
 
           {/* CPF/CNPJ */}
@@ -185,15 +172,15 @@ export default function Cadastro() {
 
           {/* Telefone */}
           <div className="space-y-2">
-            <Label htmlFor="telefone">Telefone *</Label>
+            <Label htmlFor="phone">Telefone *</Label>
             <Controller
-              name="telefone"
+              name="phone"
               control={control}
               rules={{ required: 'Telefone é obrigatório' }}
               render={({ field }) => (
                 <Input
                   {...field}
-                  id="telefone"
+                  id="phone"
                   placeholder="(00) 00000-0000"
                   value={formatTelefone(field.value)}
                   disabled={submetido}
@@ -201,9 +188,7 @@ export default function Cadastro() {
                 />
               )}
             />
-            {errors.telefone && (
-              <span className="text-red-500 text-sm">{errors.telefone.message}</span>
-            )}
+            {errors.phone && <span className="text-red-500 text-sm">{errors.phone.message}</span>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email *</Label>
@@ -251,68 +236,70 @@ export default function Cadastro() {
 
           {/* Cidade - UF */}
           <div className="space-y-2">
-            <Label htmlFor="cidade-uf">Cidade - UF *</Label>
+            <Label htmlFor="cityState">Cidade - UF *</Label>
             <Input
-              id="cidade-uf"
+              id="cityState"
               type="text"
               placeholder="Cidade - UF"
               className="bg-gray-100"
-              {...register('cidadeUf')}
+              {...register('cityState')}
             />
           </div>
 
           {/* Bairro */}
           <div className="space-y-2">
-            <Label htmlFor="bairro">Bairro *</Label>
+            <Label htmlFor="neighborhood">Bairro *</Label>
             <Input
-              id="bairro"
+              id="neighborhood"
               type="text"
               placeholder="Nome do bairro"
               className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
-              {...register('bairro', { required: 'Bairro é obrigatório' })}
+              {...register('neighborhood', { required: 'Bairro é obrigatório' })}
             />
-            {errors.bairro && <span className="text-red-500 text-sm">{errors.bairro.message}</span>}
+            {errors.neighborhood && (
+              <span className="text-red-500 text-sm">{errors.neighborhood.message}</span>
+            )}
           </div>
 
           {/* Rua */}
           <div className="space-y-2">
-            <Label htmlFor="rua">Rua *</Label>
+            <Label htmlFor="street">Rua *</Label>
             <Input
-              id="rua"
+              id="street"
               type="text"
               placeholder="Nome da rua"
               className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
-              {...register('rua', { required: 'Rua é obrigatória' })}
+              {...register('street', { required: 'Rua é obrigatória' })}
             />
-            {errors.rua && <span className="text-red-500 text-sm">{errors.rua.message}</span>}
+            {errors.street && <span className="text-red-500 text-sm">{errors.street.message}</span>}
           </div>
 
           {/* Número */}
           <div className="space-y-2">
-            <Label htmlFor="numero">Número *</Label>
+            <Label htmlFor="number">Número *</Label>
             <Input
-              id="numero"
+              id="number"
               type="text"
               placeholder="Número da residência"
               className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
-              {...register('numero', { required: 'Número é obrigatório' })}
+              {...register('number', { required: 'Número é obrigatório' })}
             />
-            {errors.numero && <span className="text-red-500 text-sm">{errors.numero.message}</span>}
+            {errors.number && <span className="text-red-500 text-sm">{errors.number.message}</span>}
           </div>
 
           {/* Complemento */}
           <div className="space-y-2">
-            <Label htmlFor="complemento">Complemento</Label>
+            <Label htmlFor="complement">Complemento</Label>
             <Input
-              id="complemento"
+              id="complement"
               type="text"
               placeholder="Apartamento, casa, etc. (opcional)"
               className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
-              {...register('complemento')}
+              {...register('complement')}
             />
           </div>
 

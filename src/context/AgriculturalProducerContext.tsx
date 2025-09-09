@@ -1,39 +1,26 @@
 'use client';
+import { AgriculturalProducerEntity } from '@/service/cadastro';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type AgriculturalProducerData = {
-  nome: string;
-  cpfCnpj: string;
-  telefone: string;
-  cep: string;
-  cidadeUf: string;
-  bairro: string;
-  rua: string;
-  numero: string;
-  complemento: string;
-  email: string;
-};
-
 type AgriculturalProducerContextType = {
-  data: AgriculturalProducerData;
-  setData: (data: AgriculturalProducerData) => void;
+  data: AgriculturalProducerEntity;
+  setData: (data: AgriculturalProducerEntity) => void;
 };
 
 const AgriculturalProducerContext = createContext<AgriculturalProducerContextType | undefined>(
   undefined
 );
 
-const emptyData: AgriculturalProducerData = {
-  nome: '',
-  cpfCnpj: '',
-  telefone: '',
-  cep: '',
-  cidadeUf: '',
-  bairro: '',
-  rua: '',
-  numero: '',
-  complemento: '',
+const emptyData: AgriculturalProducerEntity = {
+  name: '',
+  document: '',
+  phone: '',
   email: '',
+  zipCode: '',
+  city: '',
+  street: '',
+  number: '',
+  complement: '',
 };
 
 /**
@@ -50,7 +37,7 @@ const emptyData: AgriculturalProducerData = {
  */
 
 export const AgriculturalProducerProvider = ({ children }: { children: ReactNode }) => {
-  const [data, setData] = useState<AgriculturalProducerData>(emptyData);
+  const [data, setData] = useState<AgriculturalProducerEntity>(emptyData);
 
   // Recupera dados salvos do localStorage na inicialização
   // Importante: Como não temos login,  é o único jeito de manter dados entre sessões
