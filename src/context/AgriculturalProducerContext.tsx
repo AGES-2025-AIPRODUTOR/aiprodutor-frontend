@@ -12,6 +12,7 @@ const AgriculturalProducerContext = createContext<AgriculturalProducerContextTyp
 );
 
 const emptyData: AgriculturalProducerEntity = {
+  id: 0,
   name: '',
   document: '',
   phone: '',

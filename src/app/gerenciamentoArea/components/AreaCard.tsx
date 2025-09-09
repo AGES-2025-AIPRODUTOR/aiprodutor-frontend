@@ -34,7 +34,11 @@ export default function AreaCard(props: {
         <p>Tamanho: {size}</p>
       </div>
       <div className="grid grid-flow-col grid-cols-2 w-full gap-2">
-        <DeleteAreaConfirmDialog handleDeleteArea={handleDeleteArea} areaId={areaId} />
+        <DeleteAreaConfirmDialog
+          handleDeleteArea={handleDeleteArea}
+          areaId={areaId}
+          buttonSize="default"
+        />
         <Link
           href={`/gerenciamentoArea/mapa/${areaId}?soilTypeId=${soilTypeId || ''}&irrigationTypeId=${irrigationTypeId || ''}`}
           className="w-full"

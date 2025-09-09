@@ -156,8 +156,12 @@ export function EditAreaForm({
               )}
             />
             <div className="flex gap-4">
-              <DeleteAreaConfirmDialog handleDeleteArea={handleDeleteArea} areaId={areaId} />
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 mb-3">
+              <DeleteAreaConfirmDialog
+                handleDeleteArea={handleDeleteArea}
+                areaId={areaId}
+                buttonSize="sm"
+              />
+              <Button type="submit" className="w-full py-5 bg-green-600 hover:bg-green-700 mb-3">
                 Concluir
               </Button>
             </div>

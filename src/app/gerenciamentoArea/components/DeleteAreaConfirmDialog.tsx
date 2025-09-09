@@ -15,13 +15,22 @@ import { Trash2 } from 'lucide-react';
 export function DeleteAreaConfirmDialog(props: {
   handleDeleteArea: (areaId: number) => void;
   areaId: number;
+  buttonClassName?: string;
+  buttonSize?: 'default' | 'sm' | 'lg' | 'icon';
 }) {
-  const { handleDeleteArea, areaId } = props;
+  const { handleDeleteArea, areaId, buttonSize } = props;
+
+  const defaultClassName =
+    buttonSize === 'sm'
+      ? 'w-full bg-white hover:bg-gray-50 border-green-700 py-5 text-green-700 mb-3'
+      : 'w-full border-green-700 text-green-700 py-5 px-4 basis-1';
+
+  const buttonClassName = props.buttonClassName || defaultClassName;
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full border-green-700 text-green-700 py-5 px-4 " variant="outline">
+        <Button className={buttonClassName} variant="outline" size={buttonSize}>
           <Trash2 className="mb-[2px]" />
           Excluir
         </Button>

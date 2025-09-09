@@ -14,11 +14,10 @@ import { formatCep, formatCpfCnpj, formatTelefone, validateCpfCnpj } from '@/lib
 
 type Inputs = {
   name: string;
-  cpfCnpj: string;
+  document: string;
   phone: string;
-  cep: string;
+  zipCode: string;
   cityState: string;
-  neighborhood: string;
   street: string;
   number: string;
   complement?: string;
@@ -28,7 +27,6 @@ type Inputs = {
 type ViaCepResponse = {
   uf: string;
   localidade: string;
-  bairro: string;
   logradouro: string;
   erro?: boolean;
 };
@@ -48,11 +46,10 @@ export default function Cadastro() {
   } = useForm<Inputs>({
     defaultValues: {
       name: '',
-      cpfCnpj: '',
+      document: '',
       phone: '',
-      cep: '',
+      zipCode: '',
       cityState: '',
-      neighborhood: '',
       street: '',
       number: '',
       complement: '',
@@ -74,10 +71,10 @@ export default function Cadastro() {
 
     const payload: AgriculturalProducerEntity = {
       name: data.name,
-      document: data.cpfCnpj,
+      document: data.document,
       phone: data.phone,
       email: data.email,
-      zipCode: data.cep,
+      zipCode: data.zipCode,
       city: data.cityState.split(' - ')[0] || '',
       street: data.street,
       number: data.number,
@@ -108,7 +105,6 @@ export default function Cadastro() {
       if (data.erro) return;
 
       setValue('cityState', `${data.localidade} - ${data.uf}`);
-      setValue('neighborhood', data.bairro);
       setValue('street', data.logradouro);
     } catch (err) {
       console.error(err);
@@ -146,9 +142,9 @@ export default function Cadastro() {
 
           {/* CPF/CNPJ */}
           <div className="space-y-2">
-            <Label htmlFor="cpfCnpj">CPF/CNPJ *</Label>
+            <Label htmlFor="document">CPF/CNPJ *</Label>
             <Controller
-              name="cpfCnpj"
+              name="document"
               control={control}
               rules={{
                 required: 'CPF/CNPJ é obrigatório',
@@ -157,7 +153,7 @@ export default function Cadastro() {
               render={({ field }) => (
                 <Input
                   {...field}
-                  id="cpfCnpj"
+                  id="document"
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   value={formatCpfCnpj(field.value)}
                   disabled={submetido}
@@ -165,8 +161,8 @@ export default function Cadastro() {
                 />
               )}
             />
-            {errors.cpfCnpj && (
-              <span className="text-red-500 text-sm">{errors.cpfCnpj.message}</span>
+            {errors.document && (
+              <span className="text-red-500 text-sm">{errors.document.message}</span>
             )}
           </div>
 
@@ -210,9 +206,9 @@ export default function Cadastro() {
           </div>
           {/* CEP */}
           <div className="space-y-2">
-            <Label htmlFor="cep">CEP *</Label>
+            <Label htmlFor="zipCode">CEP *</Label>
             <Controller
-              name="cep"
+              name="zipCode"
               control={control}
               rules={{
                 required: 'CEP é obrigatório',
@@ -222,7 +218,7 @@ export default function Cadastro() {
               render={({ field }) => (
                 <Input
                   {...field}
-                  id="cep"
+                  id="zipCode"
                   placeholder="00000-000"
                   value={formatCep(field.value)}
                   onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}
@@ -231,7 +227,9 @@ export default function Cadastro() {
                 />
               )}
             />
-            {errors.cep && <span className="text-red-500 text-sm">{errors.cep.message}</span>}
+            {errors.zipCode && (
+              <span className="text-red-500 text-sm">{errors.zipCode.message}</span>
+            )}
           </div>
 
           {/* Cidade - UF */}
@@ -244,22 +242,6 @@ export default function Cadastro() {
               className="bg-gray-100"
               {...register('cityState')}
             />
-          </div>
-
-          {/* Bairro */}
-          <div className="space-y-2">
-            <Label htmlFor="neighborhood">Bairro *</Label>
-            <Input
-              id="neighborhood"
-              type="text"
-              placeholder="Nome do bairro"
-              className="focus:border-green-600 focus:ring-green-600"
-              disabled={submetido}
-              {...register('neighborhood', { required: 'Bairro é obrigatório' })}
-            />
-            {errors.neighborhood && (
-              <span className="text-red-500 text-sm">{errors.neighborhood.message}</span>
-            )}
           </div>
 
           {/* Rua */}
