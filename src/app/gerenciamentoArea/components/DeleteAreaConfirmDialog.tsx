@@ -13,8 +13,8 @@ import {
 import { Trash2 } from 'lucide-react';
 
 export function DeleteAreaConfirmDialog(props: {
-  handleDeleteArea: (areaId: Number) => void;
-  areaId: Number;
+  handleDeleteArea: (areaId: number) => void;
+  areaId: number;
 }) {
   const { handleDeleteArea, areaId } = props;
 
@@ -34,8 +34,8 @@ export function DeleteAreaConfirmDialog(props: {
           <DialogDescription></DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose asChild >
-            <div className='flex flex-row gap-2 w-full'>
+          <DialogClose asChild>
+            <div className="flex flex-row gap-2 w-full">
               <Button className="w-full border-red-700 text-red-900" size={'lg'} variant="outline">
                 Não
               </Button>
