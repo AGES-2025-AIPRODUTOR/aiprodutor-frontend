@@ -38,12 +38,17 @@ export default function GerenciamentoArea() {
   return (
     <main className="sm:max-w-7xl flex-1 h-[calc(100%-50px)] mx-auto flex flex-col">
       <PageTitle title={'Áreas Cadastradas'} href="/" variant={'center'} />
+
       <div className="flex justify-center w-full py-4 border-b mb-3">
-        <Button variant={'outline'} className="border-green-700 text-green-700 py-7 px-4">
-          <Plus /> Adicionar Nova Área
-        </Button>
+        <Link href="/mapaAreas">
+          <Button variant="outline" className="border-green-700 text-green-700 py-7 px-4">
+            <Plus className="mr-2 h-5 w-5" />
+            Adicionar Nova Área
+          </Button>
+        </Link>
       </div>
-      <div className="flex flex-col flex-h-[calc(100%-50px)]ol gap-3 pb-4">
+
+      <div className="flex flex-col flex-h-[calc(100%-50px)] gap-3 pb-4">
         <AreaCard
           soilType="Arenoso"
           irrigationType="Superficial"
@@ -80,11 +85,12 @@ export default function GerenciamentoArea() {
           areaId={0}
         />
       </div>
+
       <div className="sticky bottom-0 w-full px-6 py-5 bg-white border drop-shadow-2xl mt-auto">
-        <Link href={'gerenciamentoArea/mapaAreas'}>
+        <Link href="/gerenciamentoArea/mapaAreas">
           <Button
             className="w-full border-green-700 bg-green-700 active:bg-green-900 focus:bg-green-900 py-7"
-            size={'lg'}
+            size="lg"
           >
             Visualizar no Mapa
           </Button>
