@@ -28,6 +28,26 @@ export interface IrrigationTypeEntity {
   description: string;
 }
 
+export type AreaCreate = Omit<AreasEntity, 'id' | 'isActive' | 'createdAt' | 'updatedAt'> & {
+  polygon: {
+    type: 'Polygon'; 
+    coordinates: number[][][]; 
+  };
+};
+
+export const postArea = async (payload: AreaCreate): Promise<ResponseApi<AreasEntity>> => {
+  try {
+    const response = await api.post<AreasEntity>('/api/v1/areas', payload);
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error('Erro ao criar área');
+    return handleAxiosError(error);
+  }
+};
+
 export const getAllAreas = async (producerId: number): Promise<ResponseApi<AreasEntity[]>> => {
   try {
     const response = await api.get<AreasEntity[]>(`/api/v1/areas/produtor/${producerId}`);
