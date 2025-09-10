@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 import Header from '@/components/Header';
-import { ProdutorProvider } from '@/context/ProdutorContext';
+import { AgriculturalProducerProvider } from '@/context/AgriculturalProducerContext';
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
@@ -19,11 +19,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={inter.className}>
       <body>
         <ReactQueryProvider>
-          <ProdutorProvider>
+          <AgriculturalProducerProvider>
             <Header />
             <main>{children}</main>
             <Toaster position="top-right" richColors />
-          </ProdutorProvider>
+          </AgriculturalProducerProvider>
         </ReactQueryProvider>
       </body>
     </html>

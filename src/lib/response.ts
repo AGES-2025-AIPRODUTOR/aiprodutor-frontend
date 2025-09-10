@@ -8,7 +8,7 @@ export interface ResponseApi<T> {
 
 export function handleAxiosError(error: unknown) {
   if (error instanceof AxiosError) {
-    const errorMessage = error.response?.data.error || error.response?.data.message;
+    const errorMessage = error.response?.data.message;
     return {
       isSuccess: false,
       errorMessage,
