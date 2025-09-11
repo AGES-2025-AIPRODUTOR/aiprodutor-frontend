@@ -1,95 +1,96 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+
+import { useMemo, useState } from 'react';
 import Dropdown from './dropdown';
 import { postArea, type AreaCreate } from '@/service/areas';
+import { useSoilAndIrrigationTypes } from '../hooks/useSoilAndIrrigationTypes';
 
 export type CadastroAreaProps = {
   onError?: (err: Error) => void;
-  menuHeight?: number; // altura do menu para descontar (não usamos mais no height fixo)
+  menuHeight?: number;
 };
 
 export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: CadastroAreaProps) {
   const [nomeArea, setNomeArea] = useState('');
-  const [cultivo, setCultivo] = useState('');
-  const [solo, setSolo] = useState({ selected: 'Selecione', open: false });
-  const [irrigacao, setIrrigacao] = useState({ selected: 'Selecione', open: false });
-  const [solos, setSolos] = useState<string[]>([]);
-  const [irrigacoes, setIrrigacoes] = useState<string[]>([]);
+  const [solo, setSolo] = useState<{ selected: string; open: boolean }>({ selected: 'Selecione', open: false });
+  const [irrigacao, setIrrigacao] = useState<{ selected: string; open: boolean }>({
+    selected: 'Selecione',
+    open: false,
+  });
 
+  // 🚀 carrega tipos pela API
+  const { soilTypes, irrigationTypes, loading, error } = useSoilAndIrrigationTypes();
+
+  // adapta para o Dropdown atual (string[])
+  const soloOptions = useMemo(() => soilTypes.map(s => s.name), [soilTypes]);
+  const irrigOptions = useMemo(() => irrigationTypes.map(i => i.name), [irrigationTypes]);
+
+  // limites de input
   const maxLengthNome = 255;
   const warningLimitNome = 230;
-  const maxLengthCultivo = 100;
-  const warningLimiteCultivo = 90;
 
   const handleNomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let newValue = e.target.value;
-    newValue = newValue.replace(/[^a-zA-ZÀ-ÿ0-9 \-_\.,()+]/g, '');
+    let newValue = e.target.value.replace(/[^a-zA-ZÀ-ÿ0-9 \-_\.,()+]/g, '');
     if (newValue.length > maxLengthNome) newValue = newValue.slice(0, maxLengthNome);
     setNomeArea(newValue);
   };
 
-  const handleCultivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let newValue = e.target.value;
-    newValue = newValue.replace(/[^a-zA-ZÀ-ÿ0-9 \-_\.,()+]/g, '');
-    if (newValue.length > maxLengthCultivo) newValue = newValue.slice(0, maxLengthCultivo);
-    setCultivo(newValue);
-  };
-
   const handleSubmit = async () => {
-  if (!nomeArea.trim()) {
-    alert("Informe o nome da área");
-    return;
-  }
-
-  try {
-    const payload: AreaCreate = {
-      name: nomeArea.trim(),
-      producerId: 1,         
-      soilTypeId: 1,         
-      irrigationTypeId: 1,    
-      polygon: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [-51.21, -30.03],
-            [-51.20, -30.03],
-            [-51.20, -30.02],
-            [-51.21, -30.02],
-            [-51.21, -30.03], 
-          ],
-        ],
-      },
-    };
-
-    const result = await postArea(payload);
-
-    if (result.isSuccess) {
-      console.log("Área criada:", result.response);
-      console.log("Cultivo (somente UI):", cultivo); 
-      alert("Área cadastrada com sucesso!");
-    } else {
-      alert("Erro ao cadastrar área (validação)");
-      console.log("Detalhes:", result);
+    if (!nomeArea.trim()) {
+      alert('Informe o nome da área');
+      return;
     }
-  } catch (err: any) {
-    const data = err?.response?.data ?? err;
-    console.error("Falha ao criar área:", data);
-    alert("Falha ao criar área. Veja o console para detalhes.");
-    onError?.(err);
-  }
-};
-  useEffect(() => {
-    axios
-      .get('/mock/solo.json')
-      .then((res) => setSolos(res.data.map((item: any) => item.tipo)))
-      .catch((err) => onError?.(err));
-    axios
-      .get('/mock/irrigacao.json')
-      .then((res) => setIrrigacoes(res.data.map((item: any) => item.tipo)))
-      .catch((err) => onError?.(err));
-  }, []);
+    if (solo.selected === 'Selecione' || irrigacao.selected === 'Selecione') {
+      alert('Selecione o tipo de solo e de irrigação.');
+      return;
+    }
+
+    // mapeia nome -> id vindo da API
+    const soilTypeId = soilTypes.find(s => s.name === solo.selected)?.id;
+    const irrigationTypeId = irrigationTypes.find(i => i.name === irrigacao.selected)?.id;
+
+    if (!soilTypeId || !irrigationTypeId) {
+      alert('Não foi possível identificar os IDs de solo/irrigação.');
+      return;
+    }
+
+    try {
+      const payload: AreaCreate = {
+        name: nomeArea.trim(),
+        producerId: 1, // mock do usuário
+        soilTypeId,
+        irrigationTypeId,
+        polygon: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [-51.21, -30.03],
+              [-51.2, -30.03],
+              [-51.2, -30.02],
+              [-51.21, -30.02],
+              [-51.21, -30.03], // fecha o polígono
+            ],
+          ],
+        },
+      };
+
+      const result = await postArea(payload);
+
+      if (result.isSuccess) {
+        alert('Área cadastrada com sucesso!');
+        console.log('Área criada:', result.response);
+      } else {
+        alert('Erro ao cadastrar área (validação).');
+        console.log('Detalhes:', result);
+      }
+    } catch (err: any) {
+      const data = err?.response?.data ?? err;
+      console.error('Falha ao criar área:', data);
+      alert('Falha ao criar área. Veja o console para detalhes.');
+      onError?.(err);
+    }
+  };
 
   return (
     <div className="max-w-md mx-auto bg-[var(--neutral-0)] font-[var(--font-family-base)] flex flex-col">
@@ -108,9 +109,7 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
           <div className="flex flex-col gap-1 w-full px-2">
             <div className="flex px-1 justify-between text-gray-400 text-md">
               <label className="px-1">Nome da área:</label>
-              <span
-                className={`text-xs ${nomeArea.length >= warningLimitNome ? 'text-red-500' : 'text-gray-400'}`}
-              >
+              <span className={`text-xs ${nomeArea.length >= warningLimitNome ? 'text-red-500' : 'text-gray-400'}`}>
                 {nomeArea.length}/{maxLengthNome}
               </span>
             </div>
@@ -126,35 +125,28 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
           {/* Dropdown Solo */}
           <div className="flex flex-col gap-1 w-full px-2 text-md text-gray-400">
             <label className="px-1 text-left">Tipo de solo:</label>
-            <Dropdown options={solos} value={solo} onChange={setSolo} />
+            {loading ? (
+              <div className="px-1 text-sm text-gray-500">Carregando…</div>
+            ) : error ? (
+              <div className="px-1 text-sm text-red-600">{error}</div>
+            ) : (
+              <Dropdown options={soloOptions} value={solo} onChange={setSolo} />
+            )}
           </div>
 
           {/* Dropdown Irrigação */}
           <div className="flex flex-col gap-1 w-full px-2 text-md text-gray-400">
             <label className="px-1 text-left">Tipo de irrigação:</label>
-            <Dropdown options={irrigacoes} value={irrigacao} onChange={setIrrigacao} />
+            {loading ? (
+              <div className="px-1 text-sm text-gray-500">Carregando…</div>
+            ) : error ? (
+              <div className="px-1 text-sm text-red-600">{error}</div>
+            ) : (
+              <Dropdown options={irrigOptions} value={irrigacao} onChange={setIrrigacao} />
+            )}
           </div>
 
-          {/* Tipo de Cultivo
-          <div className="flex flex-col gap-1 px-2 text-gray-400 text-md">
-            <div className="flex justify-between items-center px-1">
-              <label>Tipo de cultivo:</label>
-              <span
-                className={`text-xs ${cultivo.length >= warningLimiteCultivo ? 'text-red-500' : 'text-gray-400'}`}
-              >
-                {cultivo.length}/{maxLengthCultivo}
-              </span>
-            </div>
-            <input
-              type="text"
-              placeholder="Tipo de cultivo"
-              value={cultivo}
-              onChange={handleCultivoChange}
-              className="border border-gray-300 text-gray-600 h-9 px-2 focus:outline-none rounded select-text"
-            />
-          </div> */}
-
-          {/* Tamanho da área */}
+          {/* Tamanho da área (mock) */}
           <div className="text-center mt-1 flex flex-col gap-0.5">
             <span className="text-lg font-bold text-[#6D6A6D]">Tamanho</span>
             <span className="text-md text-gray-400">2.5ha (25000m²)</span>

@@ -61,6 +61,32 @@ export const getAllAreas = async (producerId: number): Promise<ResponseApi<Areas
   }
 };
 
+export const getAllSoilTypes = async (): Promise<ResponseApi<SoilTypesEntity[]>> => {
+  try {
+    const response = await api.get<SoilTypesEntity[]>('/api/v1/soil-types');
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error('Error fetching soil types');
+    return handleAxiosError(error);
+  }
+};
+
+export const getAllIrrigationTypes = async (): Promise<ResponseApi<IrrigationTypeEntity[]>> => {
+  try {
+    const response = await api.get<IrrigationTypeEntity[]>('/api/v1/irrigation-types');
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error('Error fetching irrigation types');
+    return handleAxiosError(error);
+  }
+};
+
 export const getSoilTypeById = async (soilId: number): Promise<ResponseApi<SoilTypesEntity>> => {
   try {
     const response = await api.get<SoilTypesEntity>(`/api/v1/soil-types/${soilId}`);
