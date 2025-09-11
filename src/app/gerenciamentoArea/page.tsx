@@ -40,7 +40,7 @@ export default function GerenciamentoArea() {
       <PageTitle title={'Áreas Cadastradas'} href="/" variant={'center'} />
 
       <div className="flex justify-center w-full py-4 border-b mb-3">
-        <Link href="/mapaAreas">
+        <Link href="/gerenciamentoArea/desenharArea">
           <Button variant="outline" className="border-green-700 text-green-700 py-7 px-4">
             <Plus className="mr-2 h-5 w-5" />
             Adicionar Nova Área

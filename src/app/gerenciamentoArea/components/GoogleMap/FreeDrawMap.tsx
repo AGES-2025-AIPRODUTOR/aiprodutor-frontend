@@ -20,13 +20,10 @@ export type SavedPoly = {
 type Props = {
   initialCenter?: LatLng;
   initialZoom?: number;
-  /** Renderiza polígonos vindos do back-end */
   savedPolys?: SavedPoly[];
-  /** Dispara no fim do desenho */
   onPolygonComplete?: (data: { path: LatLng[]; areaM2: number; color: string }) => void;
 };
 
-// manter fora do componente para evitar reload do script
 const GMAPS_LIBRARIES: ('geometry')[] = ['geometry'];
 
 const containerStyle: React.CSSProperties = {
@@ -34,7 +31,7 @@ const containerStyle: React.CSSProperties = {
   height: '100%',
 };
 
-const MIN_STEP_PX = 4; // distância mínima (px) entre pontos consecutivos
+const MIN_STEP_PX = 4;
 
 export default function FreeDrawMap({
   initialCenter = { lat: -27.5935, lng: -48.5585 },
@@ -57,7 +54,7 @@ export default function FreeDrawMap({
   const [isDrawing, setIsDrawing] = useState(false);
   const [path, setPath] = useState<LatLng[]>([]);
   const [polygonPath, setPolygonPath] = useState<LatLng[] | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string>('#22c55e'); // default: verde
+  const [selectedColor, setSelectedColor] = useState<string>('#22c55e');
 
   const onLoadMap = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
@@ -81,7 +78,7 @@ export default function FreeDrawMap({
       const map = mapRef.current;
       if (map) {
         map.setOptions({
-          gestureHandling: next ? 'none' : 'greedy', // bloqueia pan/zoom ao desenhar
+          gestureHandling: next ? 'none' : 'greedy',
           draggableCursor: next ? 'crosshair' : '',
         });
       }
@@ -93,7 +90,6 @@ export default function FreeDrawMap({
     });
   }, []);
 
-  // --- Helpers de projeção ---
   const projection = () => overlayRef.current?.getProjection();
 
   const pxToLatLng = useCallback((clientX: number, clientY: number): LatLng | null => {
@@ -116,7 +112,6 @@ export default function FreeDrawMap({
     return p ? { x: p.x, y: p.y } : null;
   }, []);
 
-  // --- Desenho com Pointer Events (com capture + amostragem por px) ---
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (!isDrawMode) return;
@@ -149,7 +144,7 @@ export default function FreeDrawMap({
 
         const dx = a.x - b.x;
         const dy = a.y - b.y;
-        if (Math.hypot(dx, dy) < MIN_STEP_PX) return prev; // filtra ruído
+        if (Math.hypot(dx, dy) < MIN_STEP_PX) return prev;
 
         return [...prev, ll];
       });
@@ -195,7 +190,6 @@ export default function FreeDrawMap({
           {isDrawMode ? 'Sair do modo desenho' : 'Desenhar área'}
         </button>
 
-        {/* seletor de cor (só mostra no modo desenho) */}
         {isDrawMode && (
           <label className="flex items-center gap-2 bg-white/90 rounded-md px-3 py-2 shadow">
             <span className="text-sm">Cor:</span>
@@ -216,7 +210,6 @@ export default function FreeDrawMap({
         zoom={initialZoom}
         options={mapOptions}
       >
-        {/* polígonos vindos do back-end */}
         {savedPolys.map((poly) => (
           <Polygon
             key={poly.id}
@@ -231,7 +224,6 @@ export default function FreeDrawMap({
           />
         ))}
 
-        {/* traço enquanto desenha */}
         {path.length > 1 && (
           <Polyline
             path={path}
@@ -239,7 +231,6 @@ export default function FreeDrawMap({
           />
         )}
 
-        {/* polígono finalizado imediatamente após soltar */}
         {polygonPath && (
           <Polygon
             path={polygonPath}
@@ -253,7 +244,6 @@ export default function FreeDrawMap({
           />
         )}
 
-        {/* camada capturadora só no modo desenho */}
         {isDrawMode && (
           <OverlayView
             position={initialCenter}
