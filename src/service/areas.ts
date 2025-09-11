@@ -28,6 +28,26 @@ export interface IrrigationTypeEntity {
   description: string;
 }
 
+export type AreaCreate = Omit<AreasEntity, 'id' | 'isActive' | 'createdAt' | 'updatedAt'> & {
+  polygon: {
+    type: 'Polygon'; 
+    coordinates: number[][][]; 
+  };
+};
+
+export const postArea = async (payload: AreaCreate): Promise<ResponseApi<AreasEntity>> => {
+  try {
+    const response = await api.post<AreasEntity>('/api/v1/areas', payload);
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error('Erro ao criar área');
+    return handleAxiosError(error);
+  }
+};
+
 export const getAllAreas = async (producerId: number): Promise<ResponseApi<AreasEntity[]>> => {
   try {
     const response = await api.get<AreasEntity[]>(`/api/v1/areas/produtor/${producerId}`);
@@ -37,6 +57,32 @@ export const getAllAreas = async (producerId: number): Promise<ResponseApi<Areas
     };
   } catch (error) {
     console.error('Erro ao buscar áreas');
+    return handleAxiosError(error);
+  }
+};
+
+export const getAllSoilTypes = async (): Promise<ResponseApi<SoilTypesEntity[]>> => {
+  try {
+    const response = await api.get<SoilTypesEntity[]>('/api/v1/soil-types');
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error('Error fetching soil types');
+    return handleAxiosError(error);
+  }
+};
+
+export const getAllIrrigationTypes = async (): Promise<ResponseApi<IrrigationTypeEntity[]>> => {
+  try {
+    const response = await api.get<IrrigationTypeEntity[]>('/api/v1/irrigation-types');
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error('Error fetching irrigation types');
     return handleAxiosError(error);
   }
 };
