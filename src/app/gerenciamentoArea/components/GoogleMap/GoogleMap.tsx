@@ -2,22 +2,29 @@
 import { useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 
-export type GoogleMapCoreProps  = {
+export type GoogleMapCoreProps = {
+  initialCenter?: google.maps.LatLngLiteral;
+  initialZoom?: number;
+
   center?: google.maps.LatLngLiteral;
   zoom?: number;
+
   onReady?: (map: google.maps.Map) => void;
   onError?: (err: Error) => void;
   height?: number | string;
 };
 
 export default function GoogleMap({
-  center = { lat: -30.0346, lng: -51.2177 },
-  zoom = 12,
+  initialCenter = { lat: -30.0346, lng: -51.2177 },
+  initialZoom = 12,
+  center,
+  zoom,
   onReady,
   onError,
   height = '70vh',
-}: GoogleMapCoreProps ) {
+}: GoogleMapCoreProps) {
   const divRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,7 +32,7 @@ export default function GoogleMap({
     const loader = new Loader({
       apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
       version: 'weekly',
-      libraries: ['places', 'geometry']
+      libraries: ['places', 'geometry'],
     });
 
     loader
@@ -33,9 +40,9 @@ export default function GoogleMap({
       .then(() => {
         if (cancelled || !divRef.current) return;
 
-        const map = new google.maps.Map(divRef.current, {
-          center,
-          zoom,
+        mapRef.current = new google.maps.Map(divRef.current, {
+          center: initialCenter,
+          zoom: initialZoom,
           mapTypeId: 'satellite',
           disableDefaultUI: true,
           fullscreenControl: false,
@@ -50,14 +57,19 @@ export default function GoogleMap({
           heading: 0,
         });
 
-        onReady?.(map);
+        onReady?.(mapRef.current);
       })
       .catch((e) => onError?.(e instanceof Error ? e : new Error(String(e))));
 
     return () => {
       cancelled = true;
     };
-  }, [center, zoom, onReady, onError]);
+  }, []);
 
-  return <div ref={divRef} style={{ width: '100%', height: '100%' }} />;
+  return (
+    <div
+      ref={divRef}
+      style={{ width: '100%', height: typeof height === 'number' ? `${height}px` : height }}
+    />
+  );
 }
