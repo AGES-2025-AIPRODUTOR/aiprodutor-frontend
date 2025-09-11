@@ -13,22 +13,12 @@ import {
 } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { DeleteAreaConfirmDialog } from './DeleteAreaConfirmDialog';
-import { deleteArea } from '@/service/areas';
+import { deleteArea, editArea } from '@/service/areas';
 import { toast } from 'sonner';
-
-const soilTypes = [
-  { value: 'Arenoso', label: 'Arenoso' },
-  { value: 'Argiloso', label: 'Argiloso' },
-];
-
-const irrigationTypes = [
-  { value: 'Superficial', label: 'Superficial' },
-  { value: 'Gotejamento', label: 'Gotejamento' },
-  { value: 'Aspersão', label: 'Aspersão' },
-];
+import { useSoilAndIrrigationTypes } from '../hooks/useSoilAndIrrigationTypes';
 
 const formSchema = z.object({
   areaName: z.string().min(2, { message: 'Nome da área deve ter pelo menos 2 caracteres.' }),
@@ -53,6 +43,8 @@ export function EditAreaForm({
   irrigationTypeName,
   refetch,
 }: EditAreaFormProps) {
+  const { soilTypes, irrigationTypes } = useSoilAndIrrigationTypes();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,9 +66,24 @@ export function EditAreaForm({
     }
   }, [areaName, soilTypeName, irrigationTypeName, form]);
 
-  function onSubmit(data: FormValues) {
-    console.log('Area ID:', areaId);
-    console.log('Form data:', data);
+  async function onSubmit(data: FormValues) {
+    setIsLoading(true);
+    const { isSuccess, errorMessage } = await editArea(areaId, {
+      name: data.areaName,
+      soilTypeId: soilTypes.find((type) => type.name === data.soilType)?.id ?? 0,
+      irrigationTypeId: irrigationTypes.find((type) => type.name === data.irrigationType)?.id ?? 0,
+      isActive: true,
+    });
+    if (isSuccess) {
+      toast.success('Área Editada com Sucesso.');
+      refetch?.();
+      setIsLoading(false);
+    } else {
+      toast.error(errorMessage);
+
+      setIsLoading(false);
+    }
+    setIsLoading(false);
   }
 
   const handleDeleteArea = async (areaId: number) => {
@@ -117,8 +124,8 @@ export function EditAreaForm({
                       </SelectTrigger>
                       <SelectContent>
                         {soilTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
+                          <SelectItem key={type.id} value={type.name}>
+                            {type.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -144,8 +151,8 @@ export function EditAreaForm({
                       </SelectTrigger>
                       <SelectContent>
                         {irrigationTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
+                          <SelectItem key={type.id} value={type.name}>
+                            {type.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -162,7 +169,7 @@ export function EditAreaForm({
                 buttonSize="sm"
               />
               <Button type="submit" className="w-full py-5 bg-green-600 hover:bg-green-700 mb-3">
-                Concluir
+                {isLoading ? 'Carregando...' : 'Concluir'}
               </Button>
             </div>
           </form>

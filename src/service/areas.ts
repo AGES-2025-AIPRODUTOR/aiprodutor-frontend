@@ -30,10 +30,17 @@ export interface IrrigationTypeEntity {
 
 export type AreaCreate = Omit<AreasEntity, 'id' | 'isActive' | 'createdAt' | 'updatedAt'> & {
   polygon: {
-    type: 'Polygon'; 
-    coordinates: number[][][]; 
+    type: 'Polygon';
+    coordinates: number[][][];
   };
 };
+
+export interface AreaUpdate {
+  name: string;
+  soilTypeId: number;
+  irrigationTypeId: number;
+  isActive: boolean;
+}
 
 export const postArea = async (payload: AreaCreate): Promise<ResponseApi<AreasEntity>> => {
   try {
@@ -137,6 +144,22 @@ export const deleteArea = async (areaId: number): Promise<ResponseApi<void>> => 
       isSuccess: true,
     };
   } catch (error) {
+    return handleAxiosError(error);
+  }
+};
+
+export const editArea = async (
+  areaId: number,
+  payload: AreaUpdate
+): Promise<ResponseApi<AreasEntity>> => {
+  try {
+    const response = await api.patch<AreasEntity>(`/api/v1/areas/${areaId}`, payload);
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error('Erro ao editar área');
     return handleAxiosError(error);
   }
 };
