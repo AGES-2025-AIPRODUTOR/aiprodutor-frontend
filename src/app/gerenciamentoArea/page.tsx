@@ -32,7 +32,7 @@ export default function GerenciamentoArea() {
     refetch,
   } = useQuery({
     queryKey: ['areas'],
-    queryFn: () => getAllAreas(data?.id ?? 0),
+    queryFn: () => getAllAreas(data?.id ?? 1),
   });
 
   const handleDeleteArea = async (areaId: number) => {
@@ -111,14 +111,20 @@ export default function GerenciamentoArea() {
   return (
     <main className="sm:max-w-7xl flex-1 h-[calc(100%-50px)] mx-auto flex flex-col">
       <PageTitle title={'Áreas Cadastradas'} href="/" variant={'center'} />
+
+      {/* Ação: Adicionar Nova Área (com tooltip + navegação) */}
       <div className="flex justify-center w-full py-4 border-b mb-3">
         <TooltipProvider>
           <Tooltip open={areasList.length === 0 && !isLoading && !isError}>
             <TooltipTrigger asChild>
-              <Button variant={'outline'} className="border-green-700 text-green-700 py-7 px-4">
-                <Plus /> Adicionar Nova Área
-              </Button>
+              <Link href="/gerenciamentoArea/desenharArea">
+                <Button variant="outline" className="border-green-700 text-green-700 py-7 px-4">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Adicionar Nova Área
+                </Button>
+              </Link>
             </TooltipTrigger>
+
             {areasList.length === 0 && !isLoading && !isError && (
               <TooltipContent
                 side="bottom"
@@ -136,7 +142,9 @@ export default function GerenciamentoArea() {
           </Tooltip>
         </TooltipProvider>
       </div>
-      <div className="flex flex-col flex-h-[calc(100%-50px)]ol gap-3 pb-4">
+
+      {/* Lista de áreas (dinâmica) */}
+      <div className="flex flex-col h-[calc(100%-50px)] gap-3 pb-4">
         {isLoading
           ? Array.from({ length: 3 }).map((_, index) => <AreaCardSkeleton key={index} />)
           : areasList.map((area) => (
@@ -155,11 +163,13 @@ export default function GerenciamentoArea() {
               />
             ))}
       </div>
+
+      {/* Rodapé fixo: Visualizar no Mapa (apenas quando há áreas) */}
       {areasList.length > 0 && !isError && (
         <div className="sticky bottom-0 w-full px-6 py-5 bg-white border drop-shadow-2xl mt-auto">
           <Link href={'/gerenciamentoArea/editarArea/mapa'}>
             <Button
-              className="w-full border-green-500  hover:bg-green-500 bg-green-500 active:bg-green-900 focus:bg-green-900 py-7"
+              className="w-full border-green-500 hover:bg-green-500 bg-green-500 active:bg-green-900 focus:bg-green-900 py-7"
               size={'lg'}
             >
               Visualizar no Mapa
