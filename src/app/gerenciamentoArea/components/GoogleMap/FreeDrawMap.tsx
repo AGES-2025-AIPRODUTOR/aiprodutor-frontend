@@ -1,40 +1,63 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { GoogleMap, OverlayView, Polyline, Polygon, useJsApiLoader } from '@react-google-maps/api';
+import {
+  GoogleMap,
+  OverlayView,
+  Polyline,
+  Polygon,
+  useJsApiLoader,
+} from '@react-google-maps/api';
 
-type LatLng = google.maps.LatLngLiteral;
+export type LatLng = google.maps.LatLngLiteral;
+
+export type SavedPoly = {
+  id: string;
+  path: LatLng[];
+  color?: string;
+};
 
 type Props = {
   initialCenter?: LatLng;
   initialZoom?: number;
-  onPolygonComplete?: (path: LatLng[], areaM2: number) => void;
+  /** Renderiza polígonos vindos do back-end */
+  savedPolys?: SavedPoly[];
+  /** Dispara no fim do desenho */
+  onPolygonComplete?: (data: { path: LatLng[]; areaM2: number; color: string }) => void;
 };
+
+// manter fora do componente para evitar reload do script
+const GMAPS_LIBRARIES: ('geometry')[] = ['geometry'];
 
 const containerStyle: React.CSSProperties = {
   width: '100%',
   height: '100%',
-  touchAction: 'none',
 };
 
+const MIN_STEP_PX = 4; // distância mínima (px) entre pontos consecutivos
+
 export default function FreeDrawMap({
-  initialCenter = { lat: -27.5935, lng: -48.5585 }, // Floripa como default, pois ainda nao temos o local do usuário
+  initialCenter = { lat: -27.5935, lng: -48.5585 },
   initialZoom = 14,
+  savedPolys = [],
   onPolygonComplete,
 }: Props) {
   const { isLoaded } = useJsApiLoader({
     id: 'gmap-freedraw',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
     version: 'weekly',
-    libraries: ['geometry'],
+    libraries: GMAPS_LIBRARIES,
   });
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const overlayRef = useRef<google.maps.OverlayView | null>(null);
 
-  const [drawing, setDrawing] = useState(false);
+  // UI / estados
+  const [isDrawMode, setIsDrawMode] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [path, setPath] = useState<LatLng[]>([]);
   const [polygonPath, setPolygonPath] = useState<LatLng[] | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string>('#22c55e'); // default: verde
 
   const onLoadMap = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
@@ -52,9 +75,30 @@ export default function FreeDrawMap({
     []
   );
 
+  const toggleDrawMode = useCallback(() => {
+    setIsDrawMode((prev) => {
+      const next = !prev;
+      const map = mapRef.current;
+      if (map) {
+        map.setOptions({
+          gestureHandling: next ? 'none' : 'greedy', // bloqueia pan/zoom ao desenhar
+          draggableCursor: next ? 'crosshair' : '',
+        });
+      }
+      if (!next) {
+        setIsDrawing(false);
+        setPath([]);
+      }
+      return next;
+    });
+  }, []);
+
+  // --- Helpers de projeção ---
+  const projection = () => overlayRef.current?.getProjection();
+
   const pxToLatLng = useCallback((clientX: number, clientY: number): LatLng | null => {
     const mapDiv = mapRef.current?.getDiv();
-    const proj = overlayRef.current?.getProjection();
+    const proj = projection();
     if (!mapDiv || !proj) return null;
 
     const rect = mapDiv.getBoundingClientRect();
@@ -65,83 +109,106 @@ export default function FreeDrawMap({
     return latLng?.toJSON() ?? null;
   }, []);
 
-  const startDraw = useCallback(
-    (e: React.TouchEvent | React.MouseEvent) => {
-      e.preventDefault();
+  const latLngToPx = useCallback((ll: LatLng) => {
+    const proj = projection();
+    if (!proj) return null;
+    const p = proj.fromLatLngToContainerPixel(new google.maps.LatLng(ll));
+    return p ? { x: p.x, y: p.y } : null;
+  }, []);
+
+  // --- Desenho com Pointer Events (com capture + amostragem por px) ---
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDrawMode) return;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
       setPolygonPath(null);
       setPath([]);
-      setDrawing(true);
+      setIsDrawing(true);
 
-      let clientX: number, clientY: number;
-      if ('touches' in e && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-      } else if ('clientX' in e) {
-        clientX = e.clientX;
-        clientY = e.clientY;
-      } else return;
-
-      const ll = pxToLatLng(clientX, clientY);
+      const ll = pxToLatLng(e.clientX, e.clientY);
       if (ll) setPath([ll]);
     },
-    [pxToLatLng]
+    [isDrawMode, pxToLatLng]
   );
 
-  const moveDraw = useCallback(
-    (e: React.TouchEvent | React.MouseEvent) => {
-      if (!drawing) return;
-      e.preventDefault();
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDrawMode || !isDrawing) return;
 
-      if ('touches' in e && e.touches.length === 0) return;
-
-      let clientX: number, clientY: number;
-      if ('touches' in e) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-      } else if ('clientX' in e) {
-        clientX = e.clientX;
-        clientY = e.clientY;
-      } else return;
-
-      const ll = pxToLatLng(clientX, clientY);
+      const ll = pxToLatLng(e.clientX, e.clientY);
       if (!ll) return;
 
       setPath((prev) => {
         const last = prev[prev.length - 1];
         if (!last) return [ll];
-        const dx = last.lat - ll.lat;
-        const dy = last.lng - ll.lng;
-        if (Math.hypot(dx, dy) < 1e-6) return prev;
+
+        const a = latLngToPx(last);
+        const b = latLngToPx(ll);
+        if (!a || !b) return prev;
+
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        if (Math.hypot(dx, dy) < MIN_STEP_PX) return prev; // filtra ruído
+
         return [...prev, ll];
       });
     },
-    [drawing, pxToLatLng]
+    [isDrawMode, isDrawing, pxToLatLng, latLngToPx]
   );
 
-  const endDraw = useCallback(() => {
-    if (!drawing || path.length < 3) {
-      setDrawing(false);
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+
+      if (!isDrawMode || !isDrawing || path.length < 3) {
+        setIsDrawing(false);
+        setPath([]);
+        return;
+      }
+
+      const closed = [...path, path[0]];
+      setPolygonPath(closed);
+      setIsDrawing(false);
       setPath([]);
-      return;
-    }
 
-    const closed = [...path, path[0]];
-    setPolygonPath(closed);
-    setDrawing(false);
-    setPath([]);
+      const area = google.maps.geometry.spherical.computeArea(
+        closed.map((p) => new google.maps.LatLng(p.lat, p.lng))
+      );
 
-    const area = google.maps.geometry.spherical.computeArea(
-      closed.map((p) => new google.maps.LatLng(p.lat, p.lng))
-    );
-
-    onPolygonComplete?.(closed, area);
-  }, [drawing, path, onPolygonComplete]);
+      onPolygonComplete?.({ path: closed, areaM2: area, color: selectedColor });
+    },
+    [isDrawMode, isDrawing, path, onPolygonComplete, selectedColor]
+  );
 
   if (!isLoaded) return <div className="w-full h-full">Carregando mapa…</div>;
 
   return (
-    <div className="w-full h-[calc(100vh-64px)]">
-      {' '}
+    <div className="relative w-full h-[calc(100vh-64px)]">
+      {/* Controles flutuantes */}
+      <div className="absolute z-10 left-4 top-4 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleDrawMode}
+          className="rounded-md px-4 py-2 bg-emerald-600 text-white shadow-md hover:opacity-90"
+        >
+          {isDrawMode ? 'Sair do modo desenho' : 'Desenhar área'}
+        </button>
+
+        {/* seletor de cor (só mostra no modo desenho) */}
+        {isDrawMode && (
+          <label className="flex items-center gap-2 bg-white/90 rounded-md px-3 py-2 shadow">
+            <span className="text-sm">Cor:</span>
+            <input
+              type="color"
+              value={selectedColor}
+              onChange={(e) => setSelectedColor(e.target.value)}
+              className="w-8 h-8 p-0 border-0 bg-transparent"
+            />
+          </label>
+        )}
+      </div>
+
       <GoogleMap
         onLoad={onLoadMap}
         mapContainerStyle={containerStyle}
@@ -149,51 +216,69 @@ export default function FreeDrawMap({
         zoom={initialZoom}
         options={mapOptions}
       >
-        {path.length > 1 && (
-          <Polyline
-            path={path}
+        {/* polígonos vindos do back-end */}
+        {savedPolys.map((poly) => (
+          <Polygon
+            key={poly.id}
+            path={poly.path}
             options={{
-              strokeWeight: 3,
+              fillColor: poly.color ?? '#22c55e',
+              fillOpacity: 0.25,
+              strokeColor: poly.color ?? '#16a34a',
+              strokeWeight: 2,
               clickable: false,
             }}
           />
+        ))}
+
+        {/* traço enquanto desenha */}
+        {path.length > 1 && (
+          <Polyline
+            path={path}
+            options={{ strokeWeight: 3, clickable: false, strokeColor: selectedColor }}
+          />
         )}
 
+        {/* polígono finalizado imediatamente após soltar */}
         {polygonPath && (
           <Polygon
             path={polygonPath}
             options={{
-              fillOpacity: 0.15,
+              fillOpacity: 0.2,
+              fillColor: selectedColor,
+              strokeColor: selectedColor,
               strokeWeight: 2,
               clickable: false,
             }}
           />
         )}
 
-        <OverlayView
-          position={initialCenter}
-          mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-          onLoad={(ov) => {
-            overlayRef.current = ov;
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100vw',
-              height: '100vh',
-              pointerEvents: 'auto',
+        {/* camada capturadora só no modo desenho */}
+        {isDrawMode && (
+          <OverlayView
+            position={initialCenter}
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+            onLoad={(ov) => {
+              overlayRef.current = ov;
             }}
-            onTouchStart={startDraw}
-            onTouchMove={moveDraw}
-            onTouchEnd={endDraw}
-            onMouseDown={startDraw}
-            onMouseMove={moveDraw}
-            onMouseUp={endDraw}
-          />
-        </OverlayView>
+          >
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: '100vw',
+                height: '100vh',
+                pointerEvents: 'auto',
+                touchAction: 'none',
+                cursor: 'crosshair',
+              }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+            />
+          </OverlayView>
+        )}
       </GoogleMap>
     </div>
   );

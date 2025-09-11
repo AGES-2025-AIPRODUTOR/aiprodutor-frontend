@@ -1,17 +1,21 @@
 'use client';
-
-import PageTitle from '@/components/PageTitle';
-import FreeDrawMap from '../components/GoogleMap/FreeDrawMap';
+import FreeDrawMap, { LatLng, SavedPoly } from '../components/GoogleMap/FreeDrawMap';
 
 export default function DesenharAreaPage() {
+  // exemplo: polígonos que você trouxe do back
+  const saved: SavedPoly[] = [
+    // { id: '1', color: '#ef4444', path: [{lat:..., lng:...}, ...] }
+  ];
+
   return (
-    <div className="flex flex-col h-screen">
+    <div >
       <FreeDrawMap
-        onPolygonComplete={(path, area) => {
-          // aqui você pode salvar no backend
-          // ex: POST para /areas com { path, areaM2: area }
+        savedPolys={saved}
+        onPolygonComplete={({ path, areaM2, color }) => {
           console.log('Polígono:', path);
-          console.log('Área (m²):', Math.round(area));
+          console.log('Área (m²):', Math.round(areaM2));
+          console.log('Cor:', color);
+          // ➜ POST para o back com { path, areaM2, color }
         }}
       />
     </div>
