@@ -4,7 +4,7 @@ import GoogleMap from '../components/GoogleMap';
 import LocationInput from '../components/GoogleMap/LocationInput';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
-import CadastroAreaWrapper from '../CadastroArea/page'
+import CadastroAreaWrapper from '../cadastroArea/page';
 
 interface Location {
   lat: number;

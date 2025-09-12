@@ -23,7 +23,7 @@ export default function EditArea() {
 
   const { refetch } = useQuery({
     queryKey: ['areas'],
-    queryFn: () => getAllAreas(data.id ?? 0),
+    queryFn: () => getAllAreas(data.id ?? 1),
   });
 
   const handleBack = () => {

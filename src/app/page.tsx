@@ -2,16 +2,28 @@
 
 import { redirect, RedirectType } from 'next/navigation';
 import { useEffect } from 'react';
+import Image from 'next/image';
+import { LOGOS } from '../../public/brand/logos';
 
 export default function Home() {
   useEffect(() => {
-    redirect('/home', RedirectType.replace);
+    const timer = setTimeout(() => {
+      redirect('/home', RedirectType.replace);
+    }, 1200); // espera 1.2s só pra dar tempo da logo aparecer
+
+    return () => clearTimeout(timer);
   }, []);
-  // UseEffect com um Array vazio - Ação ocorre uma vez ao carregar a página.
 
   return (
-    <div >
-
+    <div className="flex items-center justify-center h-screen w-screen bg-white">
+      <Image
+        src={LOGOS.aiProdutor}
+        alt="AI Produtor"
+        width={180}
+        height={40}
+        priority
+        draggable={false}
+      />
     </div>
   );
 }

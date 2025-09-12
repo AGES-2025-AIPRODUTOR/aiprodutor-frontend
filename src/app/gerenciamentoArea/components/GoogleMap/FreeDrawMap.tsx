@@ -2,6 +2,8 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { GoogleMap, OverlayView, Polyline, Polygon, useJsApiLoader } from '@react-google-maps/api';
+import { useRouter } from 'next/navigation';
+import { set } from 'zod';
 
 export type LatLng = google.maps.LatLngLiteral;
 
@@ -19,12 +21,7 @@ type Props = {
 };
 
 const GMAPS_LIBRARIES: 'geometry'[] = ['geometry'];
-
-const containerStyle: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-};
-
+const containerStyle: React.CSSProperties = { width: '100%', height: '100%' };
 const MIN_STEP_PX = 4;
 
 const formatArea = (m2: number) =>
@@ -33,7 +30,7 @@ const formatArea = (m2: number) =>
     : `${(m2 / 10000).toFixed(2)} ha (${Math.round(m2).toLocaleString('pt-BR')} m²)`;
 
 export default function FreeDrawMap({
-  initialCenter = { lat: -27.5935, lng: -48.5585 },
+  initialCenter = { lat: -30.061288446538484, lng: -51.173931906074635 },
   initialZoom = 14,
   savedPolys = [],
   onPolygonComplete,
@@ -44,8 +41,12 @@ export default function FreeDrawMap({
     libraries: GMAPS_LIBRARIES,
   });
 
+  const router = useRouter();
   const mapRef = useRef<google.maps.Map | null>(null);
   const overlayRef = useRef<google.maps.OverlayView | null>(null);
+
+  // centro estável (não recentra ao alternar desenho)
+  const [mapCenter, setMapCenter] = useState<LatLng>(initialCenter);
 
   // UI / estados
   const [isDrawMode, setIsDrawMode] = useState(false);
@@ -54,14 +55,14 @@ export default function FreeDrawMap({
   const [polygonPath, setPolygonPath] = useState<LatLng[] | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>('#22c55e');
 
-  // NEW: modal de confirmação
+  // modal de confirmação
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pending, setPending] = useState<{ path: LatLng[]; areaM2: number; color: string } | null>(
-    null
-  );
+  const [pending, setPending] = useState<{ path: LatLng[]; areaM2: number; color: string } | null>(null);
 
   const onLoadMap = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
+    const c = map.getCenter()?.toJSON();
+    if (c) setMapCenter(c);
   }, []);
 
   const mapOptions = useMemo<google.maps.MapOptions>(
@@ -118,7 +119,7 @@ export default function FreeDrawMap({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!isDrawMode || confirmOpen) return; // NEW: não desenhar com modal aberto
+      if (!isDrawMode || confirmOpen) return;
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
       setPolygonPath(null);
@@ -133,7 +134,7 @@ export default function FreeDrawMap({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!isDrawMode || !isDrawing || confirmOpen) return; // NEW
+      if (!isDrawMode || !isDrawing || confirmOpen) return;
       const ll = pxToLatLng(e.clientX, e.clientY);
       if (!ll) return;
 
@@ -174,34 +175,54 @@ export default function FreeDrawMap({
         closed.map((p) => new google.maps.LatLng(p.lat, p.lng))
       );
 
-      // NEW: NÃO chama onPolygonComplete aqui. Abre modal.
       setPending({ path: closed, areaM2, color: selectedColor });
       setConfirmOpen(true);
     },
     [isDrawMode, isDrawing, path, selectedColor]
   );
 
-  // NEW: handlers do modal
   const handleConfirm = useCallback(() => {
     if (!pending) return;
-    onPolygonComplete?.(pending);
-    setConfirmOpen(false);
-    setPending(null);
-    // mantém polygonPath renderizado
-  }, [pending, onPolygonComplete]);
 
-  const handleDiscard = useCallback(() => {
+    const centerObj = mapRef.current?.getCenter()?.toJSON() ?? mapCenter;
+
+    try {
+      sessionStorage.setItem('aiprodutor:polygon', JSON.stringify(pending.path));
+      sessionStorage.setItem('aiprodutor:center', JSON.stringify(centerObj));
+      sessionStorage.setItem('aiprodutor:areaM2', String(pending.areaM2));
+      sessionStorage.setItem('aiprodutor:color', pending.color);
+    } catch (e) {
+      console.warn('Falha ao salvar no sessionStorage', e);
+    }
+
     setConfirmOpen(false);
     setPending(null);
-    setPolygonPath(null); // remove a área desenhada
-    setPath([]); // limpa traço
-  }, []);
+
+    router.push('/gerenciamentoArea/cadastroArea');
+  }, [pending, router, mapCenter]);
+
+const handleDiscard = useCallback(() => {
+  setConfirmOpen(false);
+  setPending(null);
+  setPolygonPath(null);
+  setPath([]);
+
+  setIsDrawMode(false);
+  const map = mapRef.current;
+  if (map) {
+    map.setOptions({
+      gestureHandling: 'greedy',
+      draggableCursor: '', 
+    });
+  }
+}, []);
+
 
   if (!isLoaded) return <div className="w-full h-full">Carregando mapa…</div>;
 
   return (
     <div className="relative w-full h-[calc(100vh-64px)]">
-      {/* Controles flutuantes */}
+      {/* Controles */}
       <div className="absolute z-10 left-4 top-4 flex items-center gap-2">
         <button
           type="button"
@@ -211,7 +232,7 @@ export default function FreeDrawMap({
           {isDrawMode ? 'Sair do modo desenho' : 'Desenhar área'}
         </button>
 
-        {isDrawMode && (
+        {/* {isDrawMode && (
           <label className="flex items-center gap-2 bg-white/90 rounded-md px-3 py-2 shadow">
             <span className="text-sm">Cor:</span>
             <input
@@ -221,14 +242,14 @@ export default function FreeDrawMap({
               className="w-8 h-8 p-0 border-0 bg-transparent"
             />
           </label>
-        )}
+        )} */}
       </div>
 
       {/* MAPA */}
       <GoogleMap
         onLoad={onLoadMap}
         mapContainerStyle={containerStyle}
-        center={initialCenter}
+        center={mapCenter}   // ✅ centro estável
         zoom={initialZoom}
         options={mapOptions}
       >
@@ -247,10 +268,7 @@ export default function FreeDrawMap({
         ))}
 
         {path.length > 1 && (
-          <Polyline
-            path={path}
-            options={{ strokeWeight: 3, clickable: false, strokeColor: selectedColor }}
-          />
+          <Polyline path={path} options={{ strokeWeight: 3, clickable: false, strokeColor: selectedColor }} />
         )}
 
         {polygonPath && (
@@ -266,45 +284,38 @@ export default function FreeDrawMap({
           />
         )}
 
-        {isDrawMode &&
-          !confirmOpen && ( // NEW: bloqueia overlay enquanto modal aberto
-            <OverlayView
-              position={initialCenter}
-              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              onLoad={(ov) => {
-                overlayRef.current = ov;
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  width: '100vw',
-                  height: '100vh',
-                  pointerEvents: 'auto',
-                  touchAction: 'none',
-                  cursor: 'crosshair',
-                }}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-              />
-            </OverlayView>
-          )}
+        {/* OverlayView só para obter a projection */}
+        <OverlayView
+          position={mapCenter}
+          mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          onLoad={(ov) => {
+            overlayRef.current = ov;
+          }}
+        >
+          {/* nada aqui */}
+          <div style={{ width: 0, height: 0 }} />
+        </OverlayView>
       </GoogleMap>
 
-      {/* NEW: Modal de confirmação */}
+      {/* ⚠️ Div de captura fora do OverlayView: sempre cobre o mapa */}
+      {isDrawMode && !confirmOpen && (
+        <div
+          className="absolute inset-0 z-10" // cobre o mapa todo
+          style={{ pointerEvents: 'auto', touchAction: 'none', cursor: 'crosshair' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        />
+      )}
+
+      {/* Modal de confirmação */}
       {confirmOpen && pending && (
         <div className="absolute inset-0 z-20 bg-black/50 flex items-center justify-center">
           <div className="w-11/12 max-w-sm rounded-xl bg-white p-4 shadow-lg">
             <h2 className="text-lg font-semibold mb-2">Confirmar área</h2>
 
             <div className="flex items-center gap-3 text-sm mb-2">
-              <span
-                className="inline-block h-4 w-4 rounded"
-                style={{ background: pending.color }}
-              />
+              <span className="inline-block h-4 w-4 rounded" style={{ background: pending.color }} />
               <span>Cor selecionada</span>
             </div>
 
@@ -313,18 +324,10 @@ export default function FreeDrawMap({
             </p>
 
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleConfirm}
-                className="flex-1 rounded-md px-3 py-2 bg-emerald-600 text-white hover:opacity-90"
-              >
+              <button type="button" onClick={handleConfirm} className="flex-1 rounded-md px-3 py-2 bg-emerald-600 text-white hover:opacity-90">
                 Confirmar
               </button>
-              <button
-                type="button"
-                onClick={handleDiscard}
-                className="flex-1 rounded-md px-3 py-2 bg-neutral-200 hover:bg-neutral-300"
-              >
+              <button type="button" onClick={handleDiscard} className="flex-1 rounded-md px-3 py-2 bg-neutral-200 hover:bg-neutral-300">
                 Descartar
               </button>
             </div>

@@ -1,24 +1,21 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogClose, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { Trash2 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation'; 
 
 export function DeleteAreaConfirmDialog(props: {
-  handleDeleteArea: (areaId: number) => void;
+  handleDeleteArea: (areaId: number) => void | Promise<void>;
   areaId: number;
   buttonClassName?: string;
   buttonSize?: 'default' | 'sm' | 'lg' | 'icon';
 }) {
   const { handleDeleteArea, areaId, buttonSize } = props;
+  const router = useRouter();                     
+  const pathname = usePathname();                 
 
   const defaultClassName =
     buttonSize === 'sm'
@@ -26,6 +23,18 @@ export function DeleteAreaConfirmDialog(props: {
       : 'w-full border-green-700 text-green-700 py-5 px-4 basis-1';
 
   const buttonClassName = props.buttonClassName || defaultClassName;
+
+  const onConfirm = async () => {
+    try {
+      await Promise.resolve(handleDeleteArea(areaId)); 
+    } finally {
+      if (pathname !== '/gerenciamentoArea') {
+        router.push('/gerenciamentoArea');           
+      } else {
+
+      }
+    }
+  };
 
   return (
     <Dialog>
@@ -45,16 +54,14 @@ export function DeleteAreaConfirmDialog(props: {
         <DialogFooter>
           <DialogClose asChild>
             <div className="flex flex-row gap-2 w-full">
-              <Button className="w-full border-red-700 text-red-900" size={'lg'} variant="outline">
+              <Button className="w-full border-red-700 text-red-900" size="lg" variant="outline">
                 Não
               </Button>
               <Button
                 className="w-full border-green-700 text-green-700"
-                size={'lg'}
+                size="lg"
                 variant="outline"
-                onClick={() => {
-                  handleDeleteArea(areaId);
-                }}
+                onClick={onConfirm}                         
               >
                 Sim
               </Button>

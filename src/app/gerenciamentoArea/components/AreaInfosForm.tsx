@@ -4,13 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
@@ -19,6 +13,7 @@ import { DeleteAreaConfirmDialog } from './DeleteAreaConfirmDialog';
 import { deleteArea, editArea } from '@/service/areas';
 import { toast } from 'sonner';
 import { useSoilAndIrrigationTypes } from '../hooks/useSoilAndIrrigationTypes';
+import { useRouter, usePathname } from 'next/navigation';
 
 const formSchema = z.object({
   areaName: z.string().min(2, { message: 'Nome da área deve ter pelo menos 2 caracteres.' }),
@@ -45,6 +40,9 @@ export function EditAreaForm({
 }: EditAreaFormProps) {
   const { soilTypes, irrigationTypes } = useSoilAndIrrigationTypes();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const router = useRouter();
+  const pathname = usePathname();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,42 +53,47 @@ export function EditAreaForm({
   });
 
   useEffect(() => {
-    if (areaName) {
-      form.setValue('areaName', areaName);
-    }
-    if (soilTypeName) {
-      form.setValue('soilType', soilTypeName);
-    }
-    if (irrigationTypeName) {
-      form.setValue('irrigationType', irrigationTypeName);
-    }
+    if (areaName) form.setValue('areaName', areaName);
+    if (soilTypeName) form.setValue('soilType', soilTypeName);
+    if (irrigationTypeName) form.setValue('irrigationType', irrigationTypeName);
   }, [areaName, soilTypeName, irrigationTypeName, form]);
 
   async function onSubmit(data: FormValues) {
     setIsLoading(true);
-    const { isSuccess, errorMessage } = await editArea(areaId, {
-      name: data.areaName,
-      soilTypeId: soilTypes.find((type) => type.name === data.soilType)?.id ?? 0,
-      irrigationTypeId: irrigationTypes.find((type) => type.name === data.irrigationType)?.id ?? 0,
-      isActive: true,
-    });
-    if (isSuccess) {
-      toast.success('Área Editada com Sucesso.');
-      refetch?.();
-      setIsLoading(false);
-    } else {
-      toast.error(errorMessage);
+    try {
+      const { isSuccess, errorMessage } = await editArea(areaId, {
+        name: data.areaName,
+        soilTypeId: soilTypes.find((type) => type.name === data.soilType)?.id ?? 0,
+        irrigationTypeId: irrigationTypes.find((type) => type.name === data.irrigationType)?.id ?? 0,
+        isActive: true,
+      });
 
+      if (isSuccess) {
+        toast.success('Área Editada com Sucesso.');
+        if (pathname === '/gerenciamentoArea') {
+          refetch?.();
+          // opcional: router.refresh();
+        } else {
+          router.push('/gerenciamentoArea');
+        }
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
       setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   const handleDeleteArea = async (areaId: number) => {
     const { isSuccess, errorMessage } = await deleteArea(areaId);
     if (isSuccess) {
       toast.success('Área Excluída com Sucesso.');
-      refetch?.();
+      if (pathname === '/gerenciamentoArea') {
+        refetch?.();
+        // opcional: router.refresh();
+      } else {
+        router.push('/gerenciamentoArea');
+      }
     } else {
       toast.error(errorMessage);
     }
@@ -98,7 +101,7 @@ export function EditAreaForm({
 
   return (
     <>
-      <div className={'max-w-md mx-auto mt-2 align-middle px-8 pb-3 '}>
+      <div className="max-w-md mx-auto mt-2 align-middle px-8 pb-3 ">
         <div className="mt-4 mb-4 text-center flex flex-col items-center">
           <Label className="text-md text-center font-bold text-gray-700 ">{areaName}</Label>
           <div className="flex gap-2 mt-2">
@@ -114,9 +117,7 @@ export function EditAreaForm({
               name="soilType"
               render={({ field }) => (
                 <FormItem>
-                  <Label className="text-mg font-bold mb-3 text-gray-700 block">
-                    Tipo de solo:
-                  </Label>
+                  <Label className="text-mg font-bold mb-3 text-gray-700 block">Tipo de solo:</Label>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger>
@@ -141,9 +142,7 @@ export function EditAreaForm({
               name="irrigationType"
               render={({ field }) => (
                 <FormItem>
-                  <Label className="text-mg font-bold mb-4 text-gray-700 block">
-                    Tipo de irrigação:
-                  </Label>
+                  <Label className="text-mg font-bold mb-4 text-gray-700 block">Tipo de irrigação:</Label>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger>
@@ -162,6 +161,7 @@ export function EditAreaForm({
                 </FormItem>
               )}
             />
+
             <div className="flex gap-4">
               <DeleteAreaConfirmDialog
                 handleDeleteArea={handleDeleteArea}

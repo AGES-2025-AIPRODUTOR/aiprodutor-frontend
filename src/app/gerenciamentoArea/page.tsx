@@ -18,12 +18,15 @@ import { Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipArrow } from '@radix-ui/react-tooltip';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
+import { useRouter, usePathname } from 'next/navigation'; // ✅ App Router
 
 export default function GerenciamentoArea() {
   const [areasList, setAreasList] = useState<AreasEntity[]>([]);
   const [soilTypes, setSoilTypes] = useState<{ [key: number]: string }>({});
   const [irrigationTypes, setIrrigationTypes] = useState<{ [key: number]: string }>({});
   const { data } = useAgriculturalProducerContext();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const {
     data: response,
@@ -31,15 +34,23 @@ export default function GerenciamentoArea() {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['areas'],
+    queryKey: ['areas', data?.id],
     queryFn: () => getAllAreas(data?.id ?? 1),
   });
 
   const handleDeleteArea = async (areaId: number) => {
     const { isSuccess, errorMessage } = await deleteArea(areaId);
+
     if (isSuccess) {
       toast.success('Área Excluída com Sucesso.');
-      refetch();
+
+      // Se já estiver na listagem, só atualiza; senão, volta pra listagem
+      if (pathname === '/gerenciamentoArea') {
+        refetch();
+        // opcional: router.refresh();
+      } else {
+        router.push('/gerenciamentoArea');
+      }
     } else {
       toast.error(errorMessage);
     }
@@ -47,15 +58,11 @@ export default function GerenciamentoArea() {
 
   const fetchSoilTypes = async (areas: AreasEntity[]) => {
     const soilTypesMap: { [key: number]: string } = {};
-
     for (const area of areas) {
       if (area.soilTypeId && !soilTypesMap[area.soilTypeId]) {
         try {
           const { isSuccess, response } = await getSoilTypeById(area.soilTypeId);
-
-          if (isSuccess && response) {
-            soilTypesMap[area.soilTypeId] = response.name || 'Tipo não definido';
-          }
+          if (isSuccess && response) soilTypesMap[area.soilTypeId] = response.name || 'Tipo não definido';
         } catch (error) {
           console.error(`Erro ao buscar tipo de solo ${area.soilTypeId}:`, error);
           soilTypesMap[area.soilTypeId] = 'Erro ao carregar';
@@ -66,23 +73,19 @@ export default function GerenciamentoArea() {
   };
 
   const fetchIrrigationType = async (areas: AreasEntity[]) => {
-    const soilTypesMap: { [key: number]: string } = {};
-
+    const map: { [key: number]: string } = {};
     for (const area of areas) {
-      if (area.irrigationTypeId && !soilTypesMap[area.irrigationTypeId]) {
+      if (area.irrigationTypeId && !map[area.irrigationTypeId]) {
         try {
           const { isSuccess, response } = await getIrrigationTypeById(area.irrigationTypeId);
-
-          if (isSuccess && response) {
-            soilTypesMap[area.irrigationTypeId] = response.name || 'Tipo não definido';
-          }
+          if (isSuccess && response) map[area.irrigationTypeId] = response.name || 'Tipo não definido';
         } catch (error) {
           console.error(`Erro ao buscar tipo de irrigação ${area.irrigationTypeId}:`, error);
-          soilTypesMap[area.irrigationTypeId] = 'Erro ao carregar';
+          map[area.irrigationTypeId] = 'Erro ao carregar';
         }
       }
     }
-    setIrrigationTypes(soilTypesMap);
+    setIrrigationTypes(map);
   };
 
   useEffect(() => {
@@ -110,7 +113,7 @@ export default function GerenciamentoArea() {
 
   return (
     <main className="sm:max-w-7xl flex-1 h-[calc(100%-50px)] mx-auto flex flex-col">
-      <PageTitle title={'Áreas Cadastradas'} href="/" variant={'center'} />
+      <PageTitle title="Áreas Cadastradas" href="/" variant="center" />
 
       {/* Ação: Adicionar Nova Área (com tooltip + navegação) */}
       <div className="flex justify-center w-full py-4 border-b mb-3">
@@ -124,7 +127,6 @@ export default function GerenciamentoArea() {
                 </Button>
               </Link>
             </TooltipTrigger>
-
             {areasList.length === 0 && !isLoading && !isError && (
               <TooltipContent
                 side="bottom"
@@ -134,8 +136,7 @@ export default function GerenciamentoArea() {
               >
                 <TooltipArrow className="fill-green-800" />
                 <p className="relative text-center text-sm z-10 break-words max-w-[90vw]">
-                  Você ainda não possui nenhuma área cadastrada, clique em{' '}
-                  <strong>Adicionar Nova Área</strong>
+                  Você ainda não possui nenhuma área cadastrada, clique em <strong>Adicionar Nova Área</strong>
                 </p>
               </TooltipContent>
             )}
@@ -152,9 +153,7 @@ export default function GerenciamentoArea() {
                 key={area.id}
                 areaName={area.name}
                 soilType={area.soilTypeId ? soilTypes[area.soilTypeId] : 'Não definido'}
-                irrigationType={
-                  area.irrigationTypeId ? irrigationTypes[area.irrigationTypeId] : 'Não definido'
-                }
+                irrigationType={area.irrigationTypeId ? irrigationTypes[area.irrigationTypeId] : 'Não definido'}
                 size="1 ha (10000m²)"
                 handleDeleteArea={handleDeleteArea}
                 areaId={area.id}
@@ -167,10 +166,10 @@ export default function GerenciamentoArea() {
       {/* Rodapé fixo: Visualizar no Mapa (apenas quando há áreas) */}
       {areasList.length > 0 && !isError && (
         <div className="sticky bottom-0 w-full px-6 py-5 bg-white border drop-shadow-2xl mt-auto">
-          <Link href={'/gerenciamentoArea/editarArea/mapa'}>
+          <Link href="/gerenciamentoArea/editarArea/mapa">
             <Button
               className="w-full border-green-500 hover:bg-green-500 bg-green-500 active:bg-green-900 focus:bg-green-900 py-7"
-              size={'lg'}
+              size="lg"
             >
               Visualizar no Mapa
             </Button>
