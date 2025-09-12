@@ -3,10 +3,10 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Skeleton from './Skeleton';
 import ErrorView from './Error';
-import type { CadastroAreaProps } from './cadastroArea';
+import type { CadastroAreaProps } from '../cadastroArea/cadastroArea';
 
 const CoreAreaForm = dynamic<CadastroAreaProps>(
-  () => import('./cadastroArea'),
+  () => import('../cadastroArea/cadastroArea'),
   { ssr: false, loading: () => <Skeleton /> }
 );
 

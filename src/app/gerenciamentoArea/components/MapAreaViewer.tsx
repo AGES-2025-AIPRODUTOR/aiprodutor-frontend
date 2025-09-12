@@ -39,7 +39,7 @@ export default function MapAreaViewer({
   useEffect(() => {
     const fetchAllAreas = async () => {
       try {
-        const { isSuccess, response } = await getAllAreas(data.id ?? 0);
+        const { isSuccess, response } = await getAllAreas(data.id ?? 1);
         if (isSuccess && response) {
           setAreas(response);
         }

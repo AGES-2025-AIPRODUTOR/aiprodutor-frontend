@@ -58,15 +58,20 @@ export const postArea = async (payload: AreaCreate): Promise<ResponseApi<AreasEn
 export const getAllAreas = async (producerId: number): Promise<ResponseApi<AreasEntity[]>> => {
   try {
     const response = await api.get<AreasEntity[]>(`/api/v1/areas/produtor/${producerId}`);
+
+    // 🔍 filtra apenas status true (ou isActive true, depende do nome do campo na sua entidade)
+    const filtered = response.data.filter(area => area.isActive === true );
+
     return {
       isSuccess: true,
-      response: response.data,
+      response: filtered,
     };
   } catch (error) {
     console.error('Erro ao buscar áreas');
     return handleAxiosError(error);
   }
 };
+
 
 export const getAllSoilTypes = async (): Promise<ResponseApi<SoilTypesEntity[]>> => {
   try {
