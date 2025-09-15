@@ -69,7 +69,7 @@ const Page = () => {
     {
       id: 1,
       nome: "Safra de Soja",
-      status: "Concluída",
+      status: "Concluído",
       plantio: "01/03/2025",
       colheita: "10/08/2025",
       peso: "500kg",
@@ -91,7 +91,7 @@ const Page = () => {
     {
       id: 3,
       nome: "Safra de Arroz",
-      status: "Excluída",
+      status: "Desativado",
       plantio: "15/02/2025",
       colheita: "20/07/2025",
       peso: "300kg",

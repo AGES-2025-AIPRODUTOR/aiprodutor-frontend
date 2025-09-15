@@ -4,14 +4,15 @@ import React from "react";
 import { Calendar, Redo, Weight, Scaling, Ruler } from "lucide-react";
 
 // 🔹 Tipagem dos status permitidos
-export type StatusType = "Concluída" | "Em Andamento" | "Excluída";
+export type StatusType = "Concluído" | "Ativo" | "Em Andamento" | "Desativado";
 
 // 🔹 Tag de Status
 export const StatusBadge: React.FC<{ status: StatusType }> = ({ status }) => {
   const colors: Record<StatusType, { bg: string; text: string }> = {
-    Concluída: { bg: "#38A067", text: "white" },
-    "Em Andamento": { bg: "#EDC606", text: "black" },
-    Excluída: { bg: "#FF0000", text: "white" },
+    Concluído: { bg: "#38A067", text: "white" },
+    Ativo: { bg: "#1A41FF", text: "white" },
+    "Em Andamento": { bg: "#EDC606", text: "white" },
+    Desativado: { bg: "#FF0000", text: "white" },
   };
 
   const statusStyle = colors[status] || { bg: "#6B7280", text: "white" }; // fallback para status não encontrado
