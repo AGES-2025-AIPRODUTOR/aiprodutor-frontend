@@ -18,7 +18,7 @@ import { Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipArrow } from '@radix-ui/react-tooltip';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
-import { useRouter, usePathname } from 'next/navigation'; // ✅ App Router
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function GerenciamentoArea() {
   const [areasList, setAreasList] = useState<AreasEntity[]>([]);
@@ -62,7 +62,8 @@ export default function GerenciamentoArea() {
       if (area.soilTypeId && !soilTypesMap[area.soilTypeId]) {
         try {
           const { isSuccess, response } = await getSoilTypeById(area.soilTypeId);
-          if (isSuccess && response) soilTypesMap[area.soilTypeId] = response.name || 'Tipo não definido';
+          if (isSuccess && response)
+            soilTypesMap[area.soilTypeId] = response.name || 'Tipo não definido';
         } catch (error) {
           console.error(`Erro ao buscar tipo de solo ${area.soilTypeId}:`, error);
           soilTypesMap[area.soilTypeId] = 'Erro ao carregar';
@@ -78,7 +79,8 @@ export default function GerenciamentoArea() {
       if (area.irrigationTypeId && !map[area.irrigationTypeId]) {
         try {
           const { isSuccess, response } = await getIrrigationTypeById(area.irrigationTypeId);
-          if (isSuccess && response) map[area.irrigationTypeId] = response.name || 'Tipo não definido';
+          if (isSuccess && response)
+            map[area.irrigationTypeId] = response.name || 'Tipo não definido';
         } catch (error) {
           console.error(`Erro ao buscar tipo de irrigação ${area.irrigationTypeId}:`, error);
           map[area.irrigationTypeId] = 'Erro ao carregar';
@@ -136,7 +138,8 @@ export default function GerenciamentoArea() {
               >
                 <TooltipArrow className="fill-green-800" />
                 <p className="relative text-center text-sm z-10 break-words max-w-[90vw]">
-                  Você ainda não possui nenhuma área cadastrada, clique em <strong>Adicionar Nova Área</strong>
+                  Você ainda não possui nenhuma área cadastrada, clique em{' '}
+                  <strong>Adicionar Nova Área</strong>
                 </p>
               </TooltipContent>
             )}
@@ -153,7 +156,9 @@ export default function GerenciamentoArea() {
                 key={area.id}
                 areaName={area.name}
                 soilType={area.soilTypeId ? soilTypes[area.soilTypeId] : 'Não definido'}
-                irrigationType={area.irrigationTypeId ? irrigationTypes[area.irrigationTypeId] : 'Não definido'}
+                irrigationType={
+                  area.irrigationTypeId ? irrigationTypes[area.irrigationTypeId] : 'Não definido'
+                }
                 size="1 ha (10000m²)"
                 handleDeleteArea={handleDeleteArea}
                 areaId={area.id}
