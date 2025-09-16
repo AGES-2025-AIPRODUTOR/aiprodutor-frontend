@@ -2,7 +2,7 @@ import { StatusType } from '@/app/historicoSafra/components/statusBadge';
 import { api } from '@/lib/api';
 import { handleAxiosError, ResponseApi } from '@/lib/response';
 
-// revisar nomes dos campos com o backend
+// revisar nomes dos campos com o backend, os nomes do backend devem ser em inglês
 export interface HistoryEntity {
   id: number;
   nome: string;
@@ -18,7 +18,7 @@ export interface HistoryFilters {
   status?: StatusType;
   period?: string;
 }
-
+// revisar nomes dos campos com o backend
 export interface PlantingEntity {
   safraId: number;
   safraName: string;
