@@ -22,6 +22,7 @@ export interface HistoryFilters {
 export interface PlantingEntity {
   safraId: number;
   safraName: string;
+  areaId: number;
   safraInitialDate: string;
   safraEndDate: string;
   areaName: string;

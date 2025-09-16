@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Calendar, MapPin, Sprout } from 'lucide-react';
+import { ChevronLeft, Calendar, MapPin, Sprout, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, StatusType } from '../../components/statusBadge';
 import { PlantingCard } from './components/plantingCard';
@@ -89,7 +89,7 @@ const SafraDetailPage = () => {
 
   if (!safra) {
     return (
-      <div className="text-center py-8">
+      <div className="text-center py-8 ">
         <div className="flex flex-col items-center gap-3">
           <div className="text-gray-600">
             <p className="font-medium">A safra solicitada não foi encontrada.</p>
@@ -128,12 +128,12 @@ const SafraDetailPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white px-2">
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <ChevronLeft
-              size={20}
+              size={23}
               className="cursor-pointer"
               onClick={() => router.push('/historicoSafra')}
             />
@@ -155,11 +155,24 @@ const SafraDetailPage = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-gray-700">
-          <Sprout size={20} className="text-green-600" />
-          <span style={{ fontSize: '16px', fontWeight: '600' }}>
-            Plantios ({plantiosData.length})
-          </span>
+        <div className="flex items-center justify-between text-gray-700">
+          <div className="flex items-center gap-2">
+            <Sprout size={20} className="text-green-600" />
+            <span style={{ fontSize: '16px', fontWeight: '600' }}>
+              Plantios ({plantiosData.length})
+            </span>
+          </div>
+
+          <Button
+            className="px-3 py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+            style={{ backgroundColor: '#38A068', fontSize: '12px' }}
+            onClick={() => {
+              console.log('Navigate to map for area:', safra.nomeArea);
+            }}
+          >
+            <Map size={16} />
+            Ver no Mapa
+          </Button>
         </div>
       </div>
 

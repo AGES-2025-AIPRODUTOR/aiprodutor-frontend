@@ -163,10 +163,10 @@ const Page = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white p-4">
+    <div className="min-h-screen bg-white p-2">
       <PageTitle title="Histórico de Safra" href="/" variant="center" />
 
-      <div className="px-4 py-3 flex items-center gap-2">
+      <div className="px-2 py-3 flex items-center gap-2">
         <Input
           placeholder="Pesquisar por nome da safra"
           value={searchValue}
@@ -265,7 +265,7 @@ const Page = () => {
         </Sheet>
       </div>
 
-      <div className="px-4 space-y-3">
+      <div className="px-2 space-y-3">
         {isLoading ? (
           <LoadingSkeleton count={3} />
         ) : isError ? (
