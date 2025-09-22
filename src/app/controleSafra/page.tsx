@@ -63,7 +63,10 @@ export default function ControleSafra() {
 
       <div className="flex justify-center w-full py-4 border-b mb-3 bg-white">
         <Link href="/cadastrarSafra">
-          <Button variant="outline" className="border-green-700 text-green-700 py-7 px-4 bg-white hover:bg-green-50">
+          <Button
+            variant="outline"
+            className="border-green-700 text-green-700 py-7 px-4 bg-white hover:bg-green-50"
+          >
             <Plus className="mr-2 h-5 w-5" />
             Adicionar Nova Safra
           </Button>
