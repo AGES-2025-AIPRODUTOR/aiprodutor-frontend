@@ -13,7 +13,7 @@ export default function PageTitle(props: {
 
   return (
     <div className="text-gray-600">
-      <div className={`w-full h-14 px-2 flex items-center justify-between ${variant !== 'no-border-center' && 'border-b'}`} >
+      <div className={`w-full ${variant === 'no-border-center' && 'mb-[-12px]'} h-14 px-2 flex items-center justify-between ${variant !== 'no-border-center' && 'border-b'}`} >
         <Link href={href}>
           <ChevronLeft className="w-9 h-full " />
         </Link>
