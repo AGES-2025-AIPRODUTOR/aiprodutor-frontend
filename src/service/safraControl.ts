@@ -8,6 +8,18 @@ export interface SafraEntity {
   safraEndDate: string;
 }
 
+export interface SafraControlEntity {
+  producerId: number;
+  id: number;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  status: string;
+  cycle: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const getAllSafras = async (producerId: number): Promise<ResponseApi<SafraEntity[]>> => {
   try {
     const response = await api.get<SafraEntity[]>(`/api/v1/safras/${producerId}/andamento`);
@@ -22,9 +34,9 @@ export const getAllSafras = async (producerId: number): Promise<ResponseApi<Safr
   }
 };
 
-export const getSafraById = async (safraId: number): Promise<ResponseApi<SafraEntity>> => {
+export const getSafraById = async (safraId: number): Promise<ResponseApi<SafraControlEntity>> => {
   try {
-    const response = await api.get<SafraEntity>(`/api/v1/safras/${safraId}`);
+    const response = await api.get<SafraControlEntity>(`GET /api/v1/safras/${safraId}/painel`);
     return {
       isSuccess: true,
       response: response.data,
