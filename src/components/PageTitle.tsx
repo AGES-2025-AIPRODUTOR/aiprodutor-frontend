@@ -21,7 +21,7 @@ export default function PageTitle(props: {
           <h1 className="text-center font-bold text-xl text-green-700 pt-1">{title}</h1>
         )}
         {variant === 'no-border-center' && (
-          <h1 className="text-center font-bold text-xl text-gray-600 pt-1">{title}</h1>
+          <h1 className="text-center font-bold text-2xl text-gray-600">{title}</h1>
         )}
         {variant === 'left-icon' && (
           <div className="ml-4 flex w-full gap-2 justify-around">
