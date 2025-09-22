@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sheet';
 import { Filter } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
-import Dropdown from '../gerenciamentoArea/cadastroArea/dropdown';
+import Dropdown from '../gerenciamentoArea/CadastroArea/dropdown';
 import { getAllHistory, HistoryEntity, HistoryFilters } from '@/service/history';
 import { useQuery } from '@tanstack/react-query';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';

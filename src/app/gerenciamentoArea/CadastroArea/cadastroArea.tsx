@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Dropdown from '../cadastroArea/dropdown';
+import Dropdown from './dropdown';
 import { postArea, type AreaCreate } from '@/service/areas';
 import { useSoilAndIrrigationTypes } from '../hooks/useSoilAndIrrigationTypes';
 import { useRouter } from 'next/navigation';
