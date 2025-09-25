@@ -1,0 +1,29 @@
+stages:
+  - deploy
+
+test_sync_to_github:
+  stage: deploy
+  script:
+    - echo "Branch de origem:${CI_COMMIT_REF_NAME}"
+    - git config --global user.email "pipeline@gitlab.com"
+    - git config --global user.name "GitLab Pipeline"
+
+    # Garante que não estamos em um clone superficial
+    - git fetch --unshallow || true
+
+    # Garante que estamos em uma branch local para o checkout
+    - git checkout -B "${CI_COMMIT_REF_NAME}"
+
+    # Configura o remote do GitHub
+    - git remote remove github || true
+
+    - git remote add github "https://${GITHUB_TOKEN}@github.com/AGES-2025-AIPRODUTOR/aiprodutor-frontend.git"
+
+    # Força o push para a branch 'developer'
+    - echo "Enviando de '${CI_COMMIT_REF_NAME}' para a branch 'developer' no GitHub..."
+    - git push github HEAD:developer -o ci.skip --force
+
+    - echo "TESTE DE SINCRONIZAÇÃO CONCLUÍDO!"
+    - echo "Verifique a branch 'developer' no GitHub para confirmar as alterações."
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "developer"'
