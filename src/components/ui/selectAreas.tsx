@@ -1,35 +1,32 @@
-"use client"
+'use client';
+import React, { useState, useEffect } from "react";
+import { ConfirmDialog } from "./confirmDialog";
+import { AreasEntity } from "@/service/areas";
+import PolygonMini from "../PolygonMini";
 
-import React, { useState, useEffect } from "react"
-import { ConfirmDialog } from "./confirmDialog"
-import { AreasEntity } from "@/service/areas"
-
-/* Props do componente */
 type SelecionarAreaProps = {
-  areas?: AreasEntity[]
-}
+  areas?: AreasEntity[];
+};
 
 export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
-  const [listaAreas, setListaAreas] = useState<AreasEntity[]>([])
-  const [modalAberto, setModalAberto] = useState(false)
-  const [confirmExcluirId, setConfirmExcluirId] = useState<number | null>(null)
+  const [listaAreas, setListaAreas] = useState<AreasEntity[]>([]);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [confirmExcluirId, setConfirmExcluirId] = useState<number | null>(null);
 
-  // Sincroniza lista de áreas após hidratação
   useEffect(() => {
-    setListaAreas(areas)
-  }, [areas])
+    setListaAreas(areas);
+  }, [areas]);
 
   const excluirArea = (id: number) => {
-    setListaAreas(listaAreas.filter(area => area.id !== id))
-  }
+    setListaAreas(prev => prev.filter(area => area.id !== id));
+  };
 
-  const abrirModal = () => setModalAberto(true)
-  const fecharModal = () => setModalAberto(false)
+  const abrirModal = () => setModalAberto(true);
+  const fecharModal = () => setModalAberto(false);
 
-  // Nome seguro para o modal de confirmação
   const nomeAreaConfirm = confirmExcluirId
     ? listaAreas.find(a => a.id === confirmExcluirId)?.name ?? ""
-    : ""
+    : "";
 
   return (
     <div className="text-gray-400">
@@ -57,13 +54,28 @@ export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
               key={area.id}
               className="flex items-center border-b border-neutral-200 py-1 w-full"
             >
+              {/* Nome da área */}
               <span className="w-[60%] truncate block" title={area.name}>
                 {area.name}
               </span>
 
-              {/* Slot para futuro componente */}
-              <div className="w-[20%] ml-2">{/* componente futuro */}</div>
+              {/* PolygonMini - modificar cores quando tiver no back*/}
+              <div className="w-[20%] ml-2">
+                {area.polygon?.coordinates?.length ? (
+                  <PolygonMini
+                    polygon={area.polygon}
+                    size={32}
+                    padding={4}
+                    stroke="#4ade80"
+                    fill="#a7f3d0"
+                    strokeWidth={2}
+                    frameStroke="#6C6A6D"
+                    frameStrokeWidth={1}
+                  />
+                ) : null}
+              </div>
 
+              {/* Botão de excluir */}
               <button
                 className="border rounded-sm border-red-700 text-red-700 p-0.5 ml-auto"
                 onClick={() => setConfirmExcluirId(area.id)}
@@ -75,18 +87,18 @@ export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
         )}
       </div>
 
-      {/* Modal de confirmação de exclusão */}
+      {/* Modal de confirmação */}
       <ConfirmDialog
         isOpen={confirmExcluirId !== null}
         description={`Deseja realmente excluir a área "${nomeAreaConfirm}"?`}
         onConfirm={() => {
-          if (confirmExcluirId !== null) excluirArea(confirmExcluirId)
-          setConfirmExcluirId(null)
+          if (confirmExcluirId !== null) excluirArea(confirmExcluirId);
+          setConfirmExcluirId(null);
         }}
         onCancel={() => setConfirmExcluirId(null)}
       />
 
-      {/* Modal básico de adicionar áreas */}
+      {/* Modal de adicionar áreas */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-4 rounded shadow-lg max-w-md w-full">
@@ -105,8 +117,6 @@ export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
           </div>
         </div>
       )}
-    
-
     </div>
-  )
+  );
 }
