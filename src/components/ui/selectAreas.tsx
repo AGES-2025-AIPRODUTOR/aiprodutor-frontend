@@ -59,7 +59,7 @@ export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
                 {area.name}
               </span>
 
-              {/* PolygonMini */}
+              {/* PolygonMini - modificar cores quando tiver no back*/}
               <div className="w-[20%] ml-2">
                 {area.polygon?.coordinates?.length ? (
                   <PolygonMini
