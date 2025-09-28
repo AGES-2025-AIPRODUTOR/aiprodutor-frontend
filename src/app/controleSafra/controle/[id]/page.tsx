@@ -10,60 +10,115 @@ import { SafraControlPanelSkeleton } from './skeleton';
 import GeneralInfoTable from './components/GeneralInfoTable';
 import { PlantingsEmptyState } from './components/EmptyState';
 import PlantingAccordion from './components/PlantingAccordion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function Page() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const [safra, setSafra] = useState<SafraControlEntity>();
+  const [openErrorModal, setOpenErrorModal] = useState(false);
 
   const {
     data: response,
     isError,
     isLoading,
+    refetch,
   } = useQuery({
     queryKey: ['safras', id],
     queryFn: () => getSafraById(Number(id) || 0),
     enabled: Boolean(id),
+    retry: false,
   });
 
   useEffect(() => {
-    if (!isError && response?.response) {
-      setSafra(response.response);
-    }
+    if (isError || response?.isSuccess === false) setOpenErrorModal(true);
+    else setOpenErrorModal(false);
+
+    if (response?.isSuccess && response.response) setSafra(response.response);
   }, [response, isError]);
 
-  if (isLoading) return <SafraControlPanelSkeleton />;
+  if (isLoading && !safra) {
+    return <SafraControlPanelSkeleton />;
+  }
 
   return (
-    <main>
-      <PageTitle title="Painel de Controle" variant="no-border-center" href="/controleSafra" />
+    <>
+      <Dialog
+        open={openErrorModal}
+        onOpenChange={() => {
+          window.location.href = '/controleSafra';
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ocorreu um erro ao buscar os dados</DialogTitle>
+            <DialogDescription>
+              Não foi possível carregar as informações da safra. Por favor, tente novamente ou volte
+              para a página anterior.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-2">
+            <Button
+              className="flex-1"
+              variant="outline"
+              onClick={() => {
+                window.location.href = '/controleSafra';
+              }}
+            >
+              Voltar
+            </Button>
+            <Button
+              className="flex-1 bg-green-600"
+              onClick={async () => {
+                setOpenErrorModal(false);
+                const result = await refetch();
+                if (!result.data?.isSuccess) {
+                  setOpenErrorModal(true);
+                }
+              }}
+            >
+              Tentar novamente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {safra?.generalInfo?.name && (
-        <h1 className="text-center text-xl text-green-700 font-bold">{safra.generalInfo.name}</h1>
+      {safra && (
+        <main>
+          <PageTitle title="Painel de Controle" variant="no-border-center" href="/controleSafra" />
+          {safra.generalInfo?.name && (
+            <h1 className="text-center text-xl text-green-700 font-bold">
+              {safra.generalInfo.name}
+            </h1>
+          )}
+          <h1 className="text-center text-lg text-gray-600 pt-4">Informações Gerais</h1>
+          <div className="w-full px-4 mt-4 text-sm">
+            {safra.generalInfo && <GeneralInfoTable safra={safra} />}
+          </div>
+          <div className="py-4">
+            <hr className="border-1 border-gray-300 mx-4" />
+            <hr className="border-1 border-gray-300 mx-4" />
+          </div>
+          <PlantingsEmptyState
+            show={
+              Array.isArray(safra.generalInfo?.linked_plantings) &&
+              safra.generalInfo.linked_plantings.length < 1
+            }
+          />
+          <div className="py-2 flex flex-col gap-2">
+            {safra.generalInfo?.linked_plantings?.map((planting, index) => (
+              <PlantingAccordion planting={planting} key={index} />
+            ))}
+          </div>
+        </main>
       )}
-
-      <h1 className="text-center text-lg text-gray-600 pt-4">Informações Gerais</h1>
-
-      <div className="w-full px-4 mt-4 text-sm">
-        {safra?.generalInfo && <GeneralInfoTable safra={safra} />}
-      </div>
-
-      <div className="py-4">
-        <hr className="border-1 border-gray-300 mx-4" />
-        <hr className="border-1 border-gray-300 mx-4" />
-      </div>
-
-      <PlantingsEmptyState
-        show={
-          Array.isArray(safra?.generalInfo?.linked_plantings) &&
-          safra.generalInfo.linked_plantings.length < 1
-        }
-      />
-
-      <div className="py-2 flex flex-col gap-2">
-        {safra?.generalInfo?.linked_plantings?.map((planting, index) => (
-          <PlantingAccordion planting={planting} key={index} />
-        ))}
-      </div>
-    </main>
+    </>
   );
 }

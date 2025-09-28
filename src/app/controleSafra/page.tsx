@@ -43,7 +43,7 @@ export default function ControleSafra() {
 
   const handleEditSafra = (safraId: number) => {
     console.log('Editar safra:', safraId);
-    // TODO: Implementar navegação para página de edição
+    window.location.href += `/controle/${safraId}`
   };
 
   const handleViewControl = (safraId: number) => {
