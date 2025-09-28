@@ -65,10 +65,10 @@ export default function AreaListModal({ producerId, isOpen, onClose, onConfirm }
         </div>
 
         <div className="mt-4 flex gap-2">
-          <Button onClick={onClose} className="flex-1 text-green-600 border border-green-600 bg-white">
+          <Button variant="outline" onClick={onClose} className="flex-1">
             Cancelar
           </Button>
-          <Button onClick={handleConfirm} className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+          <Button onClick={handleConfirm} className="flex-1 bg-green-600 hover:bg-green-700">
             Concluir
           </Button>
         </div>
