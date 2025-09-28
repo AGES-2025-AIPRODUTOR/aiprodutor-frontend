@@ -5,12 +5,13 @@ import React from 'react';
 type Step = 'safra' | 'plantios';
 type DotState = 'idle' | 'active' | 'done';
 
-type Props = {
+// 👇 agora aceita className, style, aria-*, etc.
+type Props = React.HTMLAttributes<HTMLDivElement> & {
   active?: Step;
-  safraDone?: boolean;               // deixa a esquerda com ✓ quando confirmar
+  safraDone?: boolean;
   title?: string;
-  connectorWidthClass?: string;      // controle do comprimento da linha (ex.: "w-10 sm:w-16")
-  offsetXClass?: string;             // opcional: empurrar um pouco p/ a direita
+  connectorWidthClass?: string;
+  offsetXClass?: string;
 };
 
 function Dot({ state }: { state: DotState }) {
@@ -35,28 +36,26 @@ export default function SafraSteps({
   active = 'safra',
   safraDone = false,
   title = 'Nova Safra',
-  connectorWidthClass = 'w-12 sm:w-16',  // ⬅️ escolha o comprimento aqui
+  connectorWidthClass = 'w-12 sm:w-16',
   offsetXClass = '',
+  className,           // 👈 agora disponível
+  ...rest              // passa os demais attrs pro container
 }: Props) {
   const left: DotState = safraDone ? 'done' : active === 'safra' ? 'active' : 'idle';
   const right: DotState = active === 'plantios' ? 'active' : 'idle';
   const progress = active === 'plantios' || safraDone ? '100%' : '0%';
 
   return (
-    <div className={`flex flex-col items-center ${offsetXClass}`}>
-      <h2 className="text-[15px] font-semibold text-gray-900 sm:text-base">{title}</h2>
+    <div className={`flex flex-col items-center ${offsetXClass} ${className ?? ''}`} {...rest}>
 
-      {/* 3 colunas: 20px | auto | 20px  (sem gap) */}
+
       <div className="mt-1 grid items-center" style={{ gridTemplateColumns: '20px auto 20px' }}>
-        {/* linha 1: bolinhas + conector central */}
         <div className="col-[1] row-[1] justify-self-center">
           <Dot state={left} />
         </div>
 
         <div className="col-[2] row-[1] mx-2 flex items-center">
-          {/* base cinza com largura explícita */}
           <div className={`relative h-[2px] ${connectorWidthClass} rounded bg-gray-300`}>
-            {/* progresso verde */}
             <div
               className="absolute left-0 top-0 h-[2px] rounded bg-green-600 transition-[width] duration-200"
               style={{ width: progress }}
@@ -68,7 +67,6 @@ export default function SafraSteps({
           <Dot state={right} />
         </div>
 
-        {/* linha 2: labels alinhadas sob as bolinhas */}
         <span className="col-[1] row-[2] mt-1 justify-self-center text-[11px] font-medium text-gray-900">
           Safra
         </span>
