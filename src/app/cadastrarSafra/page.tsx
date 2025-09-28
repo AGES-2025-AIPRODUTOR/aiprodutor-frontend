@@ -16,6 +16,7 @@ export default function CadastrarSafraPage() {
   const router = useRouter();
   const search = useSearchParams();
   const [etapa, setEtapa] = useState<'safra' | 'plantios'>('safra');
+  const [safraDone, setSafraDone] = useState(false);
 
   const producerId = useMemo(() => {
     const q = search?.get('producerId');
@@ -45,7 +46,7 @@ export default function CadastrarSafraPage() {
     if (!podeSalvar) return;
     try {
       setSalvando(true);
-            setEtapa('plantios');
+      setEtapa('plantios');
 
       // TODO: integrar com API de criação de safra
       console.log('[Criar Safra] ->', {
@@ -70,11 +71,9 @@ export default function CadastrarSafraPage() {
 
       <SafraSteps
         active={etapa}
-        onChange={setEtapa}
-        connectorWidthClass="w-10 sm:w-16"
-        offsetXClass="translate-x-1 sm:translate-x-2"  
-        className="mb-3"
+        safraDone={safraDone}
         title="Adicionar plantio"
+        offsetXClass="translate-x-1 sm:translate-x-2" // puxa "um pouco" à direita, se quiser
       />
 
       {/* Datas (compacto no mobile) */}
