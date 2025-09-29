@@ -79,8 +79,8 @@ export default function PlantiosPage() {
       inicio,
       fim,
       produtoNome: produtoNome.trim(),
-      quantidadeKg: parseKg(qtdTxt),
-      areaIds: selecionadas.map((a) => a.id),
+ quantidadePlantadaKg: parseKg(qtdTxt),
+       areaIds: selecionadas.map((a) => a.id),
     });
     setInicio('');
     setFim('');
@@ -103,8 +103,8 @@ export default function PlantiosPage() {
         dataInicio: p.inicio,
         dataFim: p.fim,
         produto: p.produtoNome,
-        quantidadeKg: p.quantidadeKg,
-        areaIds: p.areaIds,
+  quantidadePlantadaKg: p.quantidadePlantadaKg,
+          areaIds: p.areaIds,
       })),
     };
 
@@ -143,7 +143,7 @@ export default function PlantiosPage() {
       {/* Produto */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          Nome do Produto do Plantio *
+          Nome do Produto do Plantio 
         </label>
         <input
           type="text"
@@ -157,7 +157,7 @@ export default function PlantiosPage() {
       {/* Quantidade */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          Quantidade Esperada *
+          Quantidade Plantada 
         </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>
@@ -225,7 +225,7 @@ export default function PlantiosPage() {
             {draft!.plantios.map((p) => (
               <li key={p.id} className="flex items-center justify-between">
                 <span>
-                  {p.produtoNome} — {p.inicio} → {p.fim} — {p.quantidadeKg ?? '—'} kg — Áreas:{' '}
+                  {p.produtoNome} — {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg — Áreas:{' '}
                   {p.areaIds.join(', ')}
                 </span>
                 <Button variant="outline" size="sm" onClick={() => removePlantio(p.id)}>

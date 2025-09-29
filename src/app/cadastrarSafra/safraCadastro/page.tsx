@@ -46,7 +46,7 @@ export default function CadastrarSafraPage() {
     setBase({ nome: nomeSafra.trim(), inicio, fim });
     setAreas(selecionadas);
     setSalvando(false);
-    router.push('/cadastrarSafra/plantios');
+    router.push('/cadastrarSafra/plantiosCadastro');
   };
 
   return (

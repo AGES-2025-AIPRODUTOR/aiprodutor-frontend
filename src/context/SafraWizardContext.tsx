@@ -4,11 +4,11 @@ import type { AreasEntity } from '@/service/areas';
 
 export type DraftPlantio = {
   id: string;
-  inicio: string;       // ISO
-  fim: string;          // ISO
+  inicio: string;
+  fim: string;
   produtoNome: string;
-  quantidadeKg: number | null;
-  areaIds: number[];    // subset das áreas da safra
+  quantidadePlantadaKg: number | null;  
+  areaIds: number[];
 };
 
 export type DraftSafra = {
