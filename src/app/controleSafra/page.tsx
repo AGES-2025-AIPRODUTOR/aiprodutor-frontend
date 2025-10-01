@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';            // 👈 ADD
+import { useRouter } from 'next/navigation'; // 👈 ADD
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -16,7 +16,7 @@ import { EmptyState } from './components/EmptyState';
 import { ErrorState } from './components/ErrorState';
 
 export default function ControleSafra() {
-  const router = useRouter();                                // 👈 ADD
+  const router = useRouter(); // 👈 ADD
   const [safrasList, setSafrasList] = useState<SafraEntity[]>([]);
   const { data } = useAgriculturalProducerContext();
 
@@ -64,7 +64,8 @@ export default function ControleSafra() {
 
       {/* Novo cadastro de safra */}
       <div className="flex justify-center w-full py-4 border-b mb-3 bg-white">
-        <Link href="/cadastrarSafra/safraCadastro">{/* 👈 vai direto para o cadastro */}
+        <Link href="/cadastrarSafra/safraCadastro">
+          {/* 👈 vai direto para o cadastro */}
           <Button
             variant="outline"
             className="border-green-700 text-green-700 py-7 px-4 bg-white hover:bg-green-50"
@@ -87,9 +88,9 @@ export default function ControleSafra() {
             <SafraCard
               key={safra.safraId}
               safra={safra}
-              onEdit={handleEditSafra}          
-              onDelete={handleDeleteSafra}      
-              onViewControl={handleViewControl}  
+              onEdit={handleEditSafra}
+              onDelete={handleDeleteSafra}
+              onViewControl={handleViewControl}
             />
           ))
         )}
