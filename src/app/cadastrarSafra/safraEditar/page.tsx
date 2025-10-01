@@ -115,7 +115,7 @@ export default function EditarSafraPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col px-4 pb-24 pt-2">
-      <PageTitle title="Editar Safra" href="/gerenciamentoArea" variant="center" />
+      <PageTitle title="Editar Safra" href="/cadastrarSafra" variant="center" />
 
       {/* Datas */}
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">

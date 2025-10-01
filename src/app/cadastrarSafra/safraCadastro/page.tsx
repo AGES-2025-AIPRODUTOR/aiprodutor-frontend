@@ -51,7 +51,7 @@ export default function CadastrarSafraPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col px-4 pb-24 pt-2">
-      <PageTitle title="Nova Safra" href="/gerenciamentoArea" variant="center" />
+      <PageTitle title="Nova Safra" href="/cadastrarSafra" variant="center" />
       <SafraSteps active="safra" title="Adicionar plantio" className="mb-3" />
 
       {/* Datas – coluna e centralizado */}
