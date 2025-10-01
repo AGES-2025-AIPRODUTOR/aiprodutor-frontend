@@ -4,11 +4,15 @@ import { Pencil } from 'lucide-react';
 import { DeleteAreaConfirmDialog } from './DeleteAreaConfirmDialog';
 import Link from 'next/link';
 
+const formatArea = (m2: number) =>
+  m2 < 10000
+    ? `${Math.round(m2).toLocaleString('pt-BR')} m²`
+    : `${(m2 / 10000).toFixed(2)} ha (${Math.round(m2).toLocaleString('pt-BR')} m²)`;
 export default function AreaCard(props: {
   soilType: string;
   areaName?: string;
   irrigationType: string;
-  size: string;
+  size: number;
   handleDeleteArea: (areaId: number) => void;
   areaId: number;
   soilTypeId?: number;
@@ -31,7 +35,7 @@ export default function AreaCard(props: {
         <h1 className="font-bold text-lg">{areaName || 'Área Sem Nome'}</h1>
         <p>Tipo de solo: {soilType}</p>
         <p>Tipo de irrigação: {irrigationType}</p>
-        <p>Tamanho: {size}</p>
+        <p>Tamanho: {formatArea(size)}</p>
       </div>
       <div className="grid grid-flow-col grid-cols-2 w-full gap-2">
         <DeleteAreaConfirmDialog

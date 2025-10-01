@@ -46,8 +46,8 @@ let _db: Record<number, SafraEntity> = {
     inicio: '2025-08-01',
     fim: '2026-08-01',
     areas: [
-      { id: 10, name: 'Tomates tomatudos', producerId: 1, isActive: true, soilTypeId: 1, irrigationTypeId: 1, polygon: {type:'Polygon',coordinates:[[]]}, createdAt:'', updatedAt:'' },
-      { id: 11, name: 'Tomates não tomatudos', producerId: 1, isActive: true, soilTypeId: 2, irrigationTypeId: 1, polygon: {type:'Polygon',coordinates:[[]]}, createdAt:'', updatedAt:'' },
+      { id: 10, name: 'Tomates tomatudos',areaM2:5000, producerId: 1, isActive: true, soilTypeId: 1, irrigationTypeId: 1, polygon: {type:'Polygon',coordinates:[[]]}, createdAt:'', updatedAt:'' },
+      { id: 11, name: 'Tomates não tomatudos',areaM2:3000000, producerId: 1, isActive: true, soilTypeId: 2, irrigationTypeId: 1, polygon: {type:'Polygon',coordinates:[[]]}, createdAt:'', updatedAt:'' },
     ],
     plantios: [
       { id:101, safraId:1, inicio:'2025-08-01', fim:'2026-01-01', produtoNome:'1º plantio de laranja', quantidadePlantadaKg:100, areaIds:[10] },

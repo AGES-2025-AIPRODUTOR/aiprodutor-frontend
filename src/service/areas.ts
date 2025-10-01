@@ -8,6 +8,8 @@ export interface AreasEntity {
   irrigationTypeId?: number;
   isActive: boolean;
   name: string;
+  areaM2: number;
+  color?: "#4CAF50";
   polygon:
     | GeoJSON.Polygon
     | GeoJSON.MultiPolygon

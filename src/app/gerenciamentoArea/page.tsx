@@ -159,7 +159,7 @@ export default function GerenciamentoArea() {
                 irrigationType={
                   area.irrigationTypeId ? irrigationTypes[area.irrigationTypeId] : 'Não definido'
                 }
-                size="1 ha (10000m²)"
+                size={area.areaM2}
                 handleDeleteArea={handleDeleteArea}
                 areaId={area.id}
                 soilTypeId={area.soilTypeId}

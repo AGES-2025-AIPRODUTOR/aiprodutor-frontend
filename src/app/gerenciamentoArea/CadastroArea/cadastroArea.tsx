@@ -32,7 +32,7 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
   // ===== 1) Lê polygon/center/area/color do sessionStorage =====
   const [polygonLatLng, setPolygonLatLng] = useState<LatLng[] | null>(null);
   const [center, setCenter] = useState<LatLng | null>(null);
-  const [areaM2, setAreaM2] = useState<number | null>(null);
+  const [areaM2, setAreaM2] = useState<number >(0);
   const [color, setColor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -111,6 +111,8 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
         producerId: 1, // TODO: ajustar para o contexto real
         soilTypeId,
         irrigationTypeId,
+        areaM2: areaM2,
+        color: "#4CAF50",
         polygon: {
           type: 'Polygon',
           coordinates: polygonCoordinates,
@@ -118,8 +120,6 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
         // opcional: salvar centro e/ou área
         // centroidLat: center?.lat,
         // centroidLng: center?.lng,
-        // areaM2: areaM2 ?? undefined,
-        // color: color ?? undefined,
       };
 
       const result = await postArea(payload);
