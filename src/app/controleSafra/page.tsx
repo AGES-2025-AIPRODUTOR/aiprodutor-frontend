@@ -60,7 +60,7 @@ export default function ControleSafra() {
 
   return (
     <main className="flex-1 h-[calc(100vh-60px)] mx-auto flex flex-col bg-gray-50">
-      <PageTitle title="Cadastro De Safra" href="/" variant="center" />
+      <PageTitle title="Controle De Safra" href="/" variant="center" />
 
       {/* Novo cadastro de safra */}
       <div className="flex justify-center w-full py-4 border-b mb-3 bg-white">
