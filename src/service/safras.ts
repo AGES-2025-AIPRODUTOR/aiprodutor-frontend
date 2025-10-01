@@ -8,30 +8,9 @@ export interface SafraEntity {
   safraEndDate: string;
 }
 
-export interface SafraControlEntity {
-  generalInfo: {
-    name: string;
-    area_count: number;
-    total_area: number;
-    cultivar: string;
-    expected_yield: number;
-    harvest_end_date: string;
-    harvest_start_date: string;
-    linked_plantings: [PlantingControlEntity];
-  };
-}
-
-export interface PlantingControlEntity {
-  estimated_harvest_date: string;
-  expected_yield: number;
-  planting_area: string;
-  planting_date: string;
-  planting_name: string;
-}
-
 export const getAllSafras = async (producerId: number): Promise<ResponseApi<SafraEntity[]>> => {
   try {
-    const response = await api.get<SafraEntity[]>(`/api/v1/harvests/${producerId}/andamento`);
+    const response = await api.get<SafraEntity[]>(`/api/v1/Harvests/${producerId}/in-progress`);
 
     return {
       isSuccess: true,
@@ -43,9 +22,9 @@ export const getAllSafras = async (producerId: number): Promise<ResponseApi<Safr
   }
 };
 
-export const getSafraById = async (safraId: number): Promise<ResponseApi<SafraControlEntity>> => {
+export const getSafraById = async (safraId: number): Promise<ResponseApi<SafraEntity>> => {
   try {
-    const response = await api.get<SafraControlEntity>(`/api/v1/harvests/${safraId}/panel`);
+    const response = await api.get<SafraEntity>(`/api/v1/Harvests/${safraId}`);
     return {
       isSuccess: true,
       response: response.data,
@@ -58,7 +37,7 @@ export const getSafraById = async (safraId: number): Promise<ResponseApi<SafraCo
 
 export const deleteSafra = async (safraId: number): Promise<ResponseApi<void>> => {
   try {
-    await api.delete(`/api/v1/harvests/${safraId}`);
+    await api.delete(`/api/v1/safras/${safraId}`);
     return {
       isSuccess: true,
     };

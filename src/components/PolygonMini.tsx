@@ -1,11 +1,24 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import React, { useMemo } from 'react';
-import type { Polygon as GeoJSONPolygon } from 'geojson';
+import type { Polygon as GJPolygon, MultiPolygon as GJMultiPolygon } from 'geojson';
 
 type RGB = { r: number; g: number; b: number } | [number, number, number];
 
+/** Aceita GeoJSON + “likes” vindos do back */
+type PolygonLike = { type: 'Polygon'; coordinates: number[][][] };
+type MultiPolygonLike = { type: 'MultiPolygon'; coordinates: number[][][][] };
+// 👇 Aceitar Polygon | MultiPolygon | “Polygon-like” (do back)
+type AnyPolygon =
+  | GJPolygon
+  | GJMultiPolygon
+  | PolygonLike
+  | MultiPolygonLike
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | { type: string; coordinates: any };
+
 type Props = {
-  polygon: GeoJSONPolygon;
+  polygon: AnyPolygon;     // <-- antes era só GeoJSONPolygon
   size?: number;
   className?: string;
 
@@ -21,23 +34,28 @@ type Props = {
   fill?: string;
   fillOpacity?: number;
 
-  // Cor opcional para “pintar o desenho” (RGB). Aceita:
-  // - string CSS: "#ff8800" | "rgb(255,136,0)" | "hsl(...)" etc.
-  // - "r,g,b" (ex.: "255,136,0")
-  // - objeto {r,g,b} ou tupla [r,g,b]
+  // Cor opcional (RGB/hex/etc.)
   color?: string | RGB;
 
   // padding interno
   padding?: number;
 };
-
+/** ---- type guards seguros ---- */
+function hasCoords(p: unknown): p is { type: string; coordinates: any } {
+  return !!p && typeof p === 'object' && 'type' in (p as any) && 'coordinates' in (p as any);
+}
+function isPolygon(p: AnyPolygon): p is GJPolygon | PolygonLike {
+  return p.type === 'Polygon' && hasCoords(p);
+}
+function isMultiPolygon(p: AnyPolygon): p is GJMultiPolygon | MultiPolygonLike {
+  return p.type === 'MultiPolygon' && hasCoords(p);
+}
 function toCssColor(color?: string | RGB): string | undefined {
   if (!color) return undefined;
   if (typeof color === 'string') {
-    // se vier "255,136,0" -> vira rgb(255,136,0)
     const m = color.match(/^\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*$/);
     if (m) return `rgb(${m[1]}, ${m[2]}, ${m[3]})`;
-    return color; // já é uma cor CSS (#, rgb(), etc.)
+    return color;
   }
   const [r, g, b] = Array.isArray(color) ? color : [color.r, color.g, color.b];
   return `rgb(${r}, ${g}, ${b})`;
@@ -45,7 +63,8 @@ function toCssColor(color?: string | RGB): string | undefined {
 
 /** Projeta [lng,lat] e centraliza no box considerando padding */
 function projectRingsCentered(
-  rings: GeoJSONPolygon['coordinates'],
+  // aceita anelagem de Polygon (N x M x 2)
+  rings: number[][][],
   boxW: number,
   boxH: number,
   pad: number
@@ -66,7 +85,6 @@ function projectRingsCentered(
     }))
   );
 
-  // bbox no plano local
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const ring of projected) {
     for (const p of ring) {
@@ -80,14 +98,10 @@ function projectRingsCentered(
   const h = maxY - minY;
   if (w === 0 || h === 0) return { d: '' };
 
-  // espaço desenhável com padding
   const drawW = boxW - pad * 2;
   const drawH = boxH - pad * 2;
-
-  // escala uniforme
   const k = Math.min(drawW / w, drawH / h);
 
-  // offsets para CENTRALIZAR dentro do quadro (com padding)
   const offX = pad + (drawW - w * k) / 2;
   const offY = pad + (drawH - h * k) / 2;
 
@@ -124,12 +138,29 @@ export default function PolygonMini({
   strokeWidth = 3,
   fill = '#000',
   fillOpacity = 1,
-  color,         
+  color,
   padding = 8,
 }: Props) {
+  // 👇 normaliza: se for MultiPolygon, junta todos os “polygons” em um único array de rings
   const d = useMemo(() => {
-    if (!polygon || polygon.type !== 'Polygon') return '';
-    return projectRingsCentered(polygon.coordinates, size, size, padding).d;
+    if (!polygon) return '';
+
+    let rings: number[][][] | null = null;
+
+    if (polygon.type === 'Polygon') {
+      rings = polygon.coordinates as number[][][];
+    } else if (polygon.type === 'MultiPolygon') {
+      // flatten de number[][][][] -> number[][][]
+      rings = (polygon.coordinates as number[][][][]).flat();
+    } else {
+      // fallback para objetos “parecidos” (teu tipo custom)
+      if (polygon.type === 'Polygon' && polygon.coordinates) {
+        rings = polygon.coordinates as number[][][];
+      }
+    }
+
+    if (!rings) return '';
+    return projectRingsCentered(rings, size, size, padding).d;
   }, [polygon, size, padding]);
 
   const colorCss = toCssColor(color);

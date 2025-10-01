@@ -8,10 +8,15 @@ export interface AreasEntity {
   irrigationTypeId?: number;
   isActive: boolean;
   name: string;
-  polygon: {
-    type: string;
-    coordinates: number[][][];
-  };
+  areaM2: number;
+  color?: "#4CAF50";
+  polygon:
+    | GeoJSON.Polygon
+    | GeoJSON.MultiPolygon
+    | {
+        type: string;
+        coordinates: number[][][];
+      };
   createdAt: string;
   updatedAt: string;
 }
@@ -60,7 +65,7 @@ export const getAllAreas = async (producerId: number): Promise<ResponseApi<Areas
     const response = await api.get<AreasEntity[]>(`/api/v1/areas/produtor/${producerId}`);
 
     // 🔍 filtra apenas status true (ou isActive true, depende do nome do campo na sua entidade)
-    const filtered = response.data.filter(area => area.isActive === true );
+    const filtered = response.data.filter((area) => area.isActive === true);
 
     return {
       isSuccess: true,
@@ -71,7 +76,6 @@ export const getAllAreas = async (producerId: number): Promise<ResponseApi<Areas
     return handleAxiosError(error);
   }
 };
-
 
 export const getAllSoilTypes = async (): Promise<ResponseApi<SoilTypesEntity[]>> => {
   try {

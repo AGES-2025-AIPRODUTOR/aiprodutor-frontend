@@ -9,8 +9,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setTimeout(() => {
       redirect('/home', RedirectType.replace);
-    }, 1200); // espera 1.2s só pra dar tempo da logo aparecer
-
+    }, 100);
     return () => clearTimeout(timer);
   }, []);
 

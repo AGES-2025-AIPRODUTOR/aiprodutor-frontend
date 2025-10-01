@@ -16,12 +16,15 @@ type LatLng = { lat: number; lng: number };
 
 export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: CadastroAreaProps) {
   const [nomeArea, setNomeArea] = useState('');
-  const [solo, setSolo] = useState<{ selected: string; open: boolean }>({ selected: 'Selecione', open: false });
+  const [solo, setSolo] = useState<{ selected: string; open: boolean }>({
+    selected: 'Selecione',
+    open: false,
+  });
   const [irrigacao, setIrrigacao] = useState<{ selected: string; open: boolean }>({
     selected: 'Selecione',
     open: false,
   });
-  const router = useRouter(); 
+  const router = useRouter();
 
   // 🚀 carrega tipos pela API
   const { soilTypes, irrigationTypes, loading, error } = useSoilAndIrrigationTypes();
@@ -29,7 +32,7 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
   // ===== 1) Lê polygon/center/area/color do sessionStorage =====
   const [polygonLatLng, setPolygonLatLng] = useState<LatLng[] | null>(null);
   const [center, setCenter] = useState<LatLng | null>(null);
-  const [areaM2, setAreaM2] = useState<number | null>(null);
+  const [areaM2, setAreaM2] = useState<number >(0);
   const [color, setColor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,7 +60,7 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
   // ===== 2) Converte lat/lng -> GeoJSON [ [ [lng,lat], ... ] ] =====
   function toGeoJSONPolygon(latlng?: LatLng[] | null): number[][][] | undefined {
     if (!latlng || latlng.length < 3) return undefined;
-    const ring = latlng.map(p => [p.lng, p.lat]);
+    const ring = latlng.map((p) => [p.lng, p.lat]);
     const [fx, fy] = ring[0];
     const [lx, ly] = ring[ring.length - 1];
     if (fx !== lx || fy !== ly) ring.push([fx, fy]);
@@ -65,8 +68,8 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
   }
 
   // adapta para o Dropdown atual (string[])
-  const soloOptions = useMemo(() => soilTypes.map(s => s.name), [soilTypes]);
-  const irrigOptions = useMemo(() => irrigationTypes.map(i => i.name), [irrigationTypes]);
+  const soloOptions = useMemo(() => soilTypes.map((s) => s.name), [soilTypes]);
+  const irrigOptions = useMemo(() => irrigationTypes.map((i) => i.name), [irrigationTypes]);
 
   // limites de input
   const maxLengthNome = 255;
@@ -88,8 +91,8 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
       return;
     }
 
-    const soilTypeId = soilTypes.find(s => s.name === solo.selected)?.id;
-    const irrigationTypeId = irrigationTypes.find(i => i.name === irrigacao.selected)?.id;
+    const soilTypeId = soilTypes.find((s) => s.name === solo.selected)?.id;
+    const irrigationTypeId = irrigationTypes.find((i) => i.name === irrigacao.selected)?.id;
 
     if (!soilTypeId || !irrigationTypeId) {
       alert('Não foi possível identificar os IDs de solo/irrigação.');
@@ -108,6 +111,8 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
         producerId: 1, // TODO: ajustar para o contexto real
         soilTypeId,
         irrigationTypeId,
+        areaM2: areaM2,
+        color: "#4CAF50",
         polygon: {
           type: 'Polygon',
           coordinates: polygonCoordinates,
@@ -115,19 +120,16 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
         // opcional: salvar centro e/ou área
         // centroidLat: center?.lat,
         // centroidLng: center?.lng,
-        // areaM2: areaM2 ?? undefined,
-        // color: color ?? undefined,
       };
 
       const result = await postArea(payload);
 
       if (result.isSuccess) {
-      toast.success('Área cadastrada com sucesso! ✅'); 
+        toast.success('Área cadastrada com sucesso! ✅');
         console.log('Área criada:', result.response);
         router.push('/gerenciamentoArea');
-
       } else {
-      toast.error('Ocorreu Algum erro no cadastro da Área! ✅');
+        toast.error('Ocorreu Algum erro no cadastro da Área! ✅');
         console.log('Detalhes:', result);
       }
     } catch (err: any) {
@@ -169,7 +171,9 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
           <div className="flex flex-col gap-1 w-full px-2">
             <div className="flex px-1 justify-between text-gray-400 text-md">
               <label className="px-1">Nome da área:</label>
-              <span className={`text-xs ${nomeArea.length >= warningLimitNome ? 'text-red-500' : 'text-gray-400'}`}>
+              <span
+                className={`text-xs ${nomeArea.length >= warningLimitNome ? 'text-red-500' : 'text-gray-400'}`}
+              >
                 {nomeArea.length}/{maxLengthNome}
               </span>
             </div>
@@ -210,7 +214,9 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
           <div className="text-center mt-1 flex flex-col gap-0.5">
             <span className="text-lg font-bold text-[#6D6A6D]">Tamanho</span>
             <span className="text-md text-gray-400">
-              {areaM2 ? `${(areaM2 / 10000).toFixed(2)} ha (${Math.round(areaM2).toLocaleString('pt-BR')} m²)` : '—'}
+              {areaM2
+                ? `${(areaM2 / 10000).toFixed(2)} ha (${Math.round(areaM2).toLocaleString('pt-BR')} m²)`
+                : '—'}
             </span>
           </div>
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Edit, Trash2 } from 'lucide-react';
-import { SafraEntity } from '@/service/safraControl';
+import { SafraEntity } from '@/service/safras';
 
 interface SafraCardProps {
   safra: SafraEntity;
@@ -22,8 +22,8 @@ export const SafraCard: React.FC<SafraCardProps> = ({ safra, onEdit, onDelete, o
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
       <div className="flex justify-between items-start mb-3">
         <h3 className="text-lg font-semibold text-gray-900">{safra.safraName}</h3>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => onViewControl(safra.safraId)}
           className="border-green-600 text-green-600 hover:bg-green-50 bg-white"
@@ -35,11 +35,15 @@ export const SafraCard: React.FC<SafraCardProps> = ({ safra, onEdit, onDelete, o
       <div className="space-y-2 mb-4">
         <div className="flex items-center text-sm text-gray-600">
           <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-          <span><strong>Início:</strong> {formatDate(safra.safraInitialDate)}</span>
+          <span>
+            <strong>Início:</strong> {formatDate(safra.safraInitialDate)}
+          </span>
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-          <span><strong>Fim:</strong> {formatDate(safra.safraEndDate)}</span>
+          <span>
+            <strong>Fim:</strong> {formatDate(safra.safraEndDate)}
+          </span>
         </div>
       </div>
 

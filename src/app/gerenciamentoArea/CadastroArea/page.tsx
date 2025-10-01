@@ -3,12 +3,12 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Skeleton from './Skeleton';
 import ErrorView from './Error';
-import type { CadastroAreaProps } from '../cadastroArea/cadastroArea';
+import type { CadastroAreaProps } from './cadastroArea';
 
-const CoreAreaForm = dynamic<CadastroAreaProps>(
-  () => import('../cadastroArea/cadastroArea'),
-  { ssr: false, loading: () => <Skeleton /> }
-);
+const CoreAreaForm = dynamic<CadastroAreaProps>(() => import('./cadastroArea'), {
+  ssr: false,
+  loading: () => <Skeleton />,
+});
 
 export default function CadastroAreaWrapper(props: CadastroAreaProps) {
   const [err, setErr] = useState<Error | null>(null);

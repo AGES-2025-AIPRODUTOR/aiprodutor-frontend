@@ -1,66 +1,110 @@
+// components/areas/SelecionarArea.tsx
+/* eslint-disable react/no-unescaped-entities */
 'use client';
-import React, { useState, useEffect } from "react";
-import { ConfirmDialog } from "./confirmDialog";
-import { AreasEntity } from "@/service/areas";
-import PolygonMini from "../PolygonMini";
+import React, { useEffect, useMemo, useState } from 'react';
+import { ConfirmDialog } from './confirmDialog';
+import { AreasEntity, getAllIrrigationTypes, getAllSoilTypes } from '@/service/areas';
+import PolygonMini from '../PolygonMini';
 
 type SelecionarAreaProps = {
   areas?: AreasEntity[];
+  onChange?: (areas: AreasEntity[]) => void;
+  onAddClick?: () => void;
 };
 
-export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
+type IdName = { id: number; name: string };
+
+export default function SelecionarArea({ areas = [], onChange, onAddClick }: SelecionarAreaProps) {
   const [listaAreas, setListaAreas] = useState<AreasEntity[]>([]);
-  const [modalAberto, setModalAberto] = useState(false);
   const [confirmExcluirId, setConfirmExcluirId] = useState<number | null>(null);
 
+  // mapas ID -> nome
+  const [soilMap, setSoilMap] = useState<Record<number, string>>({});
+  const [irrMap, setIrrMap] = useState<Record<number, string>>({});
+
+  // carrega áreas iniciais vindas da página
+  useEffect(() => setListaAreas(areas), [areas]);
+
+  // carrega domínios (solo/irrigação) uma vez
   useEffect(() => {
-    setListaAreas(areas);
-  }, [areas]);
+    let alive = true;
+    (async () => {
+      const [soilRes, irrRes] = await Promise.all([getAllSoilTypes(), getAllIrrigationTypes()]);
+      if (!alive) return;
+
+      if (soilRes.isSuccess && soilRes.response) {
+        setSoilMap(
+          Object.fromEntries((soilRes.response as IdName[]).map((s) => [s.id, s.name]))
+        );
+      }
+      if (irrRes.isSuccess && irrRes.response) {
+        setIrrMap(
+          Object.fromEntries((irrRes.response as IdName[]).map((i) => [i.id, i.name]))
+        );
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const excluirArea = (id: number) => {
-    setListaAreas(prev => prev.filter(area => area.id !== id));
+    setListaAreas((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      onChange?.(next);
+      return next;
+    });
   };
 
-  const abrirModal = () => setModalAberto(true);
-  const fecharModal = () => setModalAberto(false);
+  const nomeAreaConfirm = useMemo(
+    () => (confirmExcluirId ? listaAreas.find((a) => a.id === confirmExcluirId)?.name ?? '' : ''),
+    [confirmExcluirId, listaAreas]
+  );
 
-  const nomeAreaConfirm = confirmExcluirId
-    ? listaAreas.find(a => a.id === confirmExcluirId)?.name ?? ""
-    : "";
+  // helpers de exibição
+  const soilNameOf = (area: AreasEntity) =>
+    area.soilTypeId ? soilMap[area.soilTypeId] ?? `ID ${area.soilTypeId}` : 'Não definido';
+
+  const irrNameOf = (area: AreasEntity) =>
+    area.irrigationTypeId
+      ? irrMap[area.irrigationTypeId] ?? `ID ${area.irrigationTypeId}`
+      : 'Não definido';
 
   return (
     <div className="text-gray-400">
-      <div className="flex justify-between items-end m-1">
+      <div className="m-1 flex items-end justify-between">
         <label>Áreas</label>
         <button
-          className="text-green-300 border rounded-sm border-green-300 p-0.5"
-          onClick={abrirModal}
+          className="rounded-sm border border-green-300 p-0.5 text-green-300"
+          onClick={onAddClick}
         >
           Adicionar Áreas
         </button>
       </div>
 
-      <div className="px-4 py-1 bg-white w-[90vw] max-w-[600px] h-[8rem] border border-neutral-300 rounded-md relative overflow-y-auto">
+      <div className="relative h-[8rem] w-[90vw] max-w-[600px] overflow-y-auto rounded-md border border-neutral-300 bg-white px-4 py-1">
         {listaAreas.length === 0 ? (
-          <div className="text-gray-400 text-sm">
-            <span className="block mb-1">
+          <div className="text-sm text-gray-400">
+            <span className="mb-1 block">
               Clique em 'Adicionar Áreas' para escolher entre as áreas disponíveis
             </span>
-            <span className="block">Área total da produção: 0.0ha</span>
           </div>
         ) : (
-          listaAreas.map(area => (
+          listaAreas.map((area) => (
             <div
               key={area.id}
-              className="flex items-center border-b border-neutral-200 py-1 w-full"
+              className="flex w-full items-center border-b border-neutral-200 py-1"
             >
-              {/* Nome da área */}
-              <span className="w-[60%] truncate block" title={area.name}>
+              {/* Nome + metadados */}
+              <span className="block w-[60%] truncate" title={area.name}>
                 {area.name}
+                <span className="block text-xs text-gray-400">
+                  Solo: {soilNameOf(area)} · Irrigação: {irrNameOf(area)}
+                </span>
               </span>
 
-              {/* PolygonMini - modificar cores quando tiver no back*/}
-              <div className="w-[20%] ml-2">
+              {/* Mini polígono */}
+              <div className="ml-2 w-[20%]">
                 {area.polygon?.coordinates?.length ? (
                   <PolygonMini
                     polygon={area.polygon}
@@ -75,9 +119,9 @@ export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
                 ) : null}
               </div>
 
-              {/* Botão de excluir */}
+              {/* Excluir */}
               <button
-                className="border rounded-sm border-red-700 text-red-700 p-0.5 ml-auto"
+                className="ml-auto rounded-sm border border-red-700 p-0.5 text-red-700"
                 onClick={() => setConfirmExcluirId(area.id)}
               >
                 Excluir
@@ -87,7 +131,6 @@ export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
         )}
       </div>
 
-      {/* Modal de confirmação */}
       <ConfirmDialog
         isOpen={confirmExcluirId !== null}
         description={`Deseja realmente excluir a área "${nomeAreaConfirm}"?`}
@@ -97,26 +140,6 @@ export default function SelecionarArea({ areas = [] }: SelecionarAreaProps) {
         }}
         onCancel={() => setConfirmExcluirId(null)}
       />
-
-      {/* Modal de adicionar áreas */}
-      {modalAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded shadow-lg max-w-md w-full">
-            <h2 className="text-lg font-bold mb-2">Selecione uma área</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Aqui você colocará sua lista de áreas disponíveis para adicionar.
-            </p>
-            <div className="flex justify-end">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={fecharModal}
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
