@@ -27,9 +27,11 @@ export interface HarvestHistoryItem {
 }
 
 export interface HarvestHistoryFilters {
-  status?: StatusType;
-  startDate?: string; // YYYY-MM-DD
-  endDate?: string;   // YYYY-MM-DD
+  status?: string;
+  safraName?: string;
+  safraInitialDate?: string;
+  safraEndDate?: string;
+  safraId?: number;
 }
 
 export const getAllHistory = async (
@@ -39,12 +41,14 @@ export const getAllHistory = async (
   try {
     const response = await api.get<HarvestHistoryItem[]>(
       `/api/v1/harvests/${producerId}/historico`,
-      { 
-        params: { 
+      {
+        params: {
           ...(filters?.status && { status: filters.status }),
-          ...(filters?.startDate && { startDate: filters.startDate }),
-          ...(filters?.endDate && { endDate: filters.endDate }),
-        } 
+          ...(filters?.safraName && { safraName: filters.safraName }),
+          ...(filters?.safraInitialDate && { safraInitialDate: filters.safraInitialDate }),
+          ...(filters?.safraEndDate && { safraEndDate: filters.safraEndDate }),
+          ...(filters?.safraId && { safraId: filters.safraId }),
+        },
       }
     );
 
@@ -63,13 +67,44 @@ export const getHarvestDetail = async (
   safraId: number
 ): Promise<ResponseApi<HarvestHistoryItem>> => {
   try {
-    const response = await api.get<HarvestHistoryItem>(
-      `/api/v1/harvests/${producerId}/historico/${safraId}`
+    // Primeira tentativa: usando a rota de histórico com filtro por ID específico
+    try {
+      const response = await api.get<HarvestHistoryItem[]>(
+        `/api/v1/harvests/${producerId}/historico`,
+        {
+          params: {
+            safraId: safraId,
+          },
+        }
+      );
+
+      const safraData = Array.isArray(response.data) ? response.data[0] : response.data;
+
+      if (safraData) {
+        return {
+          isSuccess: true,
+          response: safraData,
+        };
+      }
+    } catch {
+      console.log('Filtro por safraId não suportado, buscando todos os dados...');
+    }
+
+    // Segunda tentativa: buscar todos os dados e filtrar localmente
+    const response = await api.get<HarvestHistoryItem[]>(
+      `/api/v1/harvests/${producerId}/historico`
     );
+
+    const allSafras = Array.isArray(response.data) ? response.data : [];
+    const safraData = allSafras.find((safra) => safra.safraId === safraId);
+
+    if (!safraData) {
+      throw new Error('Safra não encontrada');
+    }
 
     return {
       isSuccess: true,
-      response: response.data,
+      response: safraData,
     };
   } catch (error) {
     console.error('Erro ao buscar detalhes da safra:', error);
@@ -77,31 +112,29 @@ export const getHarvestDetail = async (
   }
 };
 
-
 export function formatDateToBrazilian(isoDate: string | null): string {
   if (!isoDate) return 'Não definida';
-  
+
   const date = new Date(isoDate);
   return date.toLocaleDateString('pt-BR');
 }
 
 export function mapStatusToDisplay(status: StatusType): string {
   const statusMap: Record<StatusType, string> = {
-    'Finalizada': 'Concluído',
-    'Ativa': 'Em Andamento',
-    'Pausada': 'Desativado',
+    Finalizada: 'Concluído',
+    Ativa: 'Em Andamento',
+    Pausada: 'Desativado',
   };
-  
+
   return statusMap[status] || status;
 }
 
 export function mapDisplayToStatus(displayStatus: string): StatusType | undefined {
   const statusMap: Record<string, StatusType> = {
-    'Concluído': 'Finalizada',
+    Concluído: 'Finalizada',
     'Em Andamento': 'Ativa',
-    'Desativado': 'Pausada',
+    Desativado: 'Pausada',
   };
-  
+
   return statusMap[displayStatus];
 }
-

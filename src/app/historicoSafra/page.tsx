@@ -12,20 +12,19 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Filter } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
 import Dropdown from '../gerenciamentoArea/CadastroArea/dropdown';
-import { 
-  getAllHistory, 
+import {
+  getAllHistory,
   HarvestHistoryFilters,
   formatDateToBrazilian,
   mapStatusToDisplay,
-  mapDisplayToStatus, 
-  StatusType
 } from '@/service/history';
 import { useQuery } from '@tanstack/react-query';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import { HistoricoSafraCard } from './components/historyCard';
+import { StatusType } from './components/statusBadge';
 import { LoadingSkeleton, ErrorMessage, EmptyState } from '@/components/SafraStates';
 
 function useDebounce(value: string, delay: number) {
@@ -52,8 +51,8 @@ const Page = () => {
     selected: '',
     open: false,
   });
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [safraInitialDate, setSafraInitialDate] = useState<string>('');
+  const [safraEndDate, setSafraEndDate] = useState<string>('');
   const [appliedFilters, setAppliedFilters] = useState<HarvestHistoryFilters>({});
 
   const { data } = useAgriculturalProducerContext();
@@ -64,16 +63,61 @@ const Page = () => {
     router.push(`/historicoSafra/safra/${safraId}`);
   };
 
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (appliedFilters.status) count++;
+    if (appliedFilters.safraInitialDate) count++;
+    if (appliedFilters.safraEndDate) count++;
+    // Não conta a busca como filtro
+    return count;
+  };
+
+  const activeFiltersCount = getActiveFiltersCount();
+
+  const getActiveFiltersDisplay = () => {
+    const filters = [];
+    if (appliedFilters.status) {
+      const statusMap: Record<string, string> = {
+        concluida: 'Concluído',
+        ativa: 'Em Andamento',
+        pausada: 'Desativado',
+      };
+      filters.push({
+        label: 'Status',
+        value: statusMap[appliedFilters.status] || appliedFilters.status,
+      });
+    }
+    if (appliedFilters.safraInitialDate) {
+      filters.push({
+        label: 'Data Início',
+        value: new Date(appliedFilters.safraInitialDate).toLocaleDateString('pt-BR'),
+      });
+    }
+    if (appliedFilters.safraEndDate) {
+      filters.push({
+        label: 'Data Fim',
+        value: new Date(appliedFilters.safraEndDate).toLocaleDateString('pt-BR'),
+      });
+    }
+    return filters;
+  };
+
+  const activeFilters = getActiveFiltersDisplay();
+
   const {
     data: response,
     isError,
     isLoading,
   } = useQuery({
-    queryKey: ['history', data.id, appliedFilters],
+    queryKey: ['history', data.id, appliedFilters, debouncedSearchValue],
     queryFn: () => {
-      return getAllHistory(data.id ?? 1, appliedFilters);
+      const filters = {
+        ...appliedFilters,
+        ...(debouncedSearchValue.trim() && { safraName: debouncedSearchValue.trim() }),
+      };
+      return getAllHistory(data.id ?? 1, filters);
     },
-    enabled: !!data.id, 
+    enabled: !!data.id,
   });
 
   return (
@@ -92,11 +136,16 @@ const Page = () => {
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button
-              className="px-3 py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+              className="px-3 py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 relative"
               style={{ backgroundColor: '#38A068', fontSize: '11px' }}
             >
               <Filter size={16} />
               Filtros
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  {activeFiltersCount}
+                </span>
+              )}
             </Button>
           </SheetTrigger>
           <SheetContent side="bottom" className="h-[50vh] pb-24 rounded-t-3xl">
@@ -109,32 +158,32 @@ const Page = () => {
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Dropdown
-                  options={['Todos', 'Concluído', 'Em Andamento', 'Desativado']}
+                  options={['Todos', 'Concluído', 'Em Andamento']}
                   value={statusFilter}
                   onChange={setStatusFilter}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="start-date">Data de Início</Label>
+                <Label htmlFor="safra-initial-date">Data Inicial da Safra</Label>
                 <Input
-                  id="start-date"
+                  id="safra-initial-date"
                   type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  max={endDate || undefined}
+                  value={safraInitialDate}
+                  onChange={(e) => setSafraInitialDate(e.target.value)}
+                  max={safraEndDate || undefined}
                   className="text-gray-400"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="end-date">Data de Fim</Label>
+                <Label htmlFor="safra-end-date">Data Final da Safra</Label>
                 <Input
-                  id="end-date"
+                  id="safra-end-date"
                   type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate || undefined}
+                  value={safraEndDate}
+                  onChange={(e) => setSafraEndDate(e.target.value)}
+                  min={safraInitialDate || undefined}
                   className="text-gray-400"
                 />
               </div>
@@ -145,8 +194,8 @@ const Page = () => {
                   className="flex-1"
                   onClick={() => {
                     setStatusFilter({ selected: '', open: false });
-                    setStartDate('');
-                    setEndDate('');
+                    setSafraInitialDate('');
+                    setSafraEndDate('');
                     setAppliedFilters({});
                   }}
                 >
@@ -160,20 +209,20 @@ const Page = () => {
 
                     // Map frontend status to backend status
                     if (statusFilter.selected && statusFilter.selected !== 'Todos') {
-                      const statusMap: Record<string, StatusType> = {
-                        'Concluído': 'Finalizada',
-                        'Em Andamento': 'Ativa',
-                        'Desativado': 'Pausada',
+                      const statusMap: Record<string, string> = {
+                        Concluído: 'concluida',
+                        'Em Andamento': 'ativa',
+                        Desativado: 'pausada',
                       };
                       filters.status = statusMap[statusFilter.selected];
                     }
 
-                    if (startDate) {
-                      filters.startDate = startDate;
+                    if (safraInitialDate) {
+                      filters.safraInitialDate = safraInitialDate;
                     }
 
-                    if (endDate) {
-                      filters.endDate = endDate;
+                    if (safraEndDate) {
+                      filters.safraEndDate = safraEndDate;
                     }
 
                     setAppliedFilters(filters);
@@ -188,6 +237,60 @@ const Page = () => {
         </Sheet>
       </div>
 
+      {/* Área de filtros ativos */}
+      {activeFilters.length > 0 && (
+        <div className="px-2 pb-3">
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.map((filter, index) => (
+              <div
+                key={index}
+                className="bg-green-50 border border-green-200 rounded-full px-3 py-1 flex items-center gap-2"
+              >
+                <span className="text-green-700 text-xs font-medium">
+                  {filter.label}: {filter.value}
+                </span>
+                <button
+                  onClick={() => {
+                    if (filter.label === 'Status') {
+                      setStatusFilter({ selected: '', open: false });
+                      const newFilters = { ...appliedFilters };
+                      delete newFilters.status;
+                      setAppliedFilters(newFilters);
+                    } else if (filter.label === 'Data Início') {
+                      setSafraInitialDate('');
+                      const newFilters = { ...appliedFilters };
+                      delete newFilters.safraInitialDate;
+                      setAppliedFilters(newFilters);
+                    } else if (filter.label === 'Data Fim') {
+                      setSafraEndDate('');
+                      const newFilters = { ...appliedFilters };
+                      delete newFilters.safraEndDate;
+                      setAppliedFilters(newFilters);
+                    }
+                  }}
+                  className="text-green-600 hover:text-green-800 w-4 h-4 flex items-center justify-center rounded-full hover:bg-green-200 transition-colors"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            ))}
+            {activeFilters.length > 1 && (
+              <button
+                onClick={() => {
+                  setStatusFilter({ selected: '', open: false });
+                  setSafraInitialDate('');
+                  setSafraEndDate('');
+                  setAppliedFilters({});
+                }}
+                className="bg-gray-100 border border-gray-300 rounded-full px-3 py-1 text-xs text-gray-600 hover:bg-gray-200 transition-colors"
+              >
+                Limpar todos
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="px-2 space-y-3">
         {isLoading ? (
           <LoadingSkeleton count={3} />
@@ -195,22 +298,11 @@ const Page = () => {
           <ErrorMessage />
         ) : response?.isSuccess && response.response ? (
           (() => {
-            // (frontend filtering)
-            const filteredResponse = response.response.filter((item) =>
-              debouncedSearchValue
-                ? item.safraName.toLowerCase().includes(debouncedSearchValue.toLowerCase())
-                : true
-            );
-
-            if (filteredResponse.length === 0 && debouncedSearchValue) {
-              return <EmptyState variant="search" />;
-            }
-
-            if (filteredResponse.length === 0) {
+            if (response.response.length === 0) {
               return <EmptyState variant="filter" />;
             }
 
-            return filteredResponse.map((item) => {
+            return response.response.map((item) => {
               const statusDisplay = mapStatusToDisplay(item.status);
               return (
                 <HistoricoSafraCard
@@ -219,8 +311,8 @@ const Page = () => {
                   name={item.safraName}
                   plantingDate={formatDateToBrazilian(item.safraInitialDate)}
                   harvestDate={formatDateToBrazilian(item.safraEndDate)}
-                  status={statusDisplay as any} 
-                  areaName={item.areas.map(area => area.name).join(', ')}
+                  status={statusDisplay as StatusType}
+                  areaName={item.areas.map((area) => area.name).join(', ')}
                   onDetailsClick={handleDetailsClick}
                 />
               );
