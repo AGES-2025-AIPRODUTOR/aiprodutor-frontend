@@ -1,14 +1,15 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import PageTitle from '../../components/PageTitle';
+import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
-import { getAllSafras, deleteSafra, type SafraListItem } from '@/service/safras';
+import { getSafrasByProducer, deleteSafra, type SafraListItem } from '@/service/safras';
+
 import { SafraCard } from './components/SafraCard';
 import { SafraCardSkeleton } from './components/SafraCardSkeleton';
 import { EmptyState } from './components/EmptyState';
@@ -16,25 +17,35 @@ import { ErrorState } from './components/ErrorState';
 
 export default function ControleSafra() {
   const router = useRouter();
-  const [safrasList, setSafrasList] = useState<SafraListItem[]>([]);
-  const { data } = useAgriculturalProducerContext();
+  const queryClient = useQueryClient();
+  const { data: producer } = useAgriculturalProducerContext();
 
-  const { data: response, isError, isLoading, refetch } = useQuery({
-    queryKey: ['safras', data?.id],
+  // garante que nunca iremos chamar a API com id=0
+  const producerId = useMemo(() => (producer?.id && producer.id > 0 ? producer.id : 0), [producer]);
+
+  const {
+    data: safrasList,
+    isError,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['safras', producerId],
     queryFn: async () => {
-      const result = await getAllSafras(data?.id ?? 1);
-      if (!result.isSuccess) throw new Error(result.errorMessage || 'Erro ao buscar safras');
-      return result;
+      const res = await getSafrasByProducer(producerId);
+      if (!res.isSuccess) throw new Error(res.errorMessage || 'Erro ao buscar safras');
+      return res.response as SafraListItem[];
     },
-    retry: false,
-    refetchOnWindowFocus: false,
+    enabled: !!producerId && producerId > 0,
   });
 
   const handleDeleteSafra = async (safraId: number) => {
     if (!confirm('Deseja realmente excluir/desativar esta safra?')) return;
     const { isSuccess, errorMessage } = await deleteSafra(safraId);
-    if (isSuccess) setSafrasList(prev => prev.filter(s => s.safraId !== safraId));
-    else alert(errorMessage || 'Falha ao excluir a safra.');
+    if (isSuccess) {
+      queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
+    } else {
+      alert(errorMessage || 'Falha ao excluir a safra.');
+    }
   };
 
   const handleEditSafra = (safraId: number) => {
@@ -42,13 +53,8 @@ export default function ControleSafra() {
   };
 
   const handleViewControl = (safraId: number) => {
-    // aqui você decide: abrir "plantiosCadastro" (adicionar plantios na safra) ou um painel
     router.push(`/cadastrarSafra/plantiosCadastro?safraId=${safraId}`);
   };
-
-  useEffect(() => {
-    if (response?.response) setSafrasList(response.response);
-  }, [response]);
 
   return (
     <main className="flex-1 h-[calc(100vh-60px)] mx-auto flex flex-col bg-gray-50">
@@ -56,7 +62,10 @@ export default function ControleSafra() {
 
       <div className="flex justify-center w-full py-4 border-b mb-3 bg-white">
         <Link href="/cadastrarSafra/safraCadastro">
-          <Button variant="outline" className="border-green-700 text-green-700 py-7 px-4 bg-white hover:bg-green-50">
+          <Button
+            variant="outline"
+            className="border-green-700 text-green-700 py-7 px-4 bg-white hover:bg-green-50"
+          >
             <Plus className="mr-2 h-5 w-5" />
             Adicionar Nova Safra
           </Button>
@@ -68,12 +77,12 @@ export default function ControleSafra() {
           Array.from({ length: 3 }).map((_, i) => <SafraCardSkeleton key={i} />)
         ) : isError ? (
           <ErrorState onRetry={() => refetch()} />
-        ) : safrasList.length === 0 ? (
+        ) : !safrasList || safrasList.length === 0 ? (
           <EmptyState />
         ) : (
-          safrasList.map((safra) => (
+          safrasList.map((safra: SafraListItem) => (
             <SafraCard
-              key={safra.safraId}
+              key={safra.id}
               safra={safra}
               onEdit={handleEditSafra}
               onDelete={handleDeleteSafra}

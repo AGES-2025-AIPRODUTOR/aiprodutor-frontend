@@ -75,3 +75,16 @@ export const validateCpfCnpj = (value: string) => {
   if (digits.length === 14) return isValidCNPJ(value) || 'CNPJ inválido';
   return 'CPF/CNPJ deve ter 11 ou 14 dígitos';
 };
+
+export const formatISOToBR = (iso?: string) => {
+  if (!iso) return '—';
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'UTC',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(dt);
+};
+

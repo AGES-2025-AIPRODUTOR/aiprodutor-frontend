@@ -1,4 +1,3 @@
-// app/cadastrarSafra/plantiosCadastro/page.tsx
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -10,8 +9,10 @@ import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/components/ui/selectAreas';
 import SafraSteps from '@/app/cadastrarSafra/components/SafraSteps';
 import { useSafraWizard } from '@/context/SafraWizardContext';
+import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import type { AreasEntity } from '@/service/areas';
 import { Input } from '@/components/ui/input';
+import { createSafra } from '@/service/safras';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
@@ -23,9 +24,11 @@ function parseKg(value: string): number | null {
 export default function PlantiosPage() {
   const router = useRouter();
   const { draft, addPlantio, removePlantio } = useSafraWizard();
+  const { data: producer } = useAgriculturalProducerContext();
+  const producerId = producer?.id ?? 1;
 
-  // 1) hooks SEMPRE no topo (ordem estável)
   const [mounted, setMounted] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   useEffect(() => setMounted(true), []);
 
   // form do plantio corrente
@@ -42,16 +45,12 @@ export default function PlantiosPage() {
 
   const invalid = !draft?.nome || !draft?.inicio || !draft?.fim || allowedAreas.length === 0;
 
-  // 2) redireciona só em efeito, nunca no render
   useEffect(() => {
     if (!mounted) return;
     if (invalid) router.replace('/cadastrarSafra');
   }, [mounted, invalid, router]);
 
-  // 3) depois de TODOS os hooks, pode fazer o early-return
-  if (!mounted || invalid) {
-    return null; // skeleton opcional
-  }
+  if (!mounted || invalid) return null;
 
   const onAddAreas = (novas: AreasEntity[]) => {
     const filtradas = novas.filter((a) => allowedAreasIds.has(a.id));
@@ -86,34 +85,43 @@ export default function PlantiosPage() {
     setSelecionadas([]);
   };
 
-  const handleFinalizar = () => {
+  const handleFinalizar = async () => {
+    // garante que o último formulário entre na lista
     if (podeAdicionar) handleAdicionarOutro();
 
-    // ⚠️ Payload já no formato do Swagger para POST /api/v1/harvests
-    const payload = {
-      name: draft!.nome,
-      startDate: draft!.inicio,  // "YYYY-MM-DD"
-      endDate: draft!.fim,       // "YYYY-MM-DD"
-      producerId: 1,             // TODO: pegar do contexto do produtor
-      areaIds: allowedAreas.map((a) => a.id),
-      plantings: draft!.plantios.map((p) => ({
-        name: p.produtoNome,                         // nome do plantio
-        plantingDate: p.inicio,                      // início do plantio
-        expectedHarvestDate: p.fim,                  // previsão da colheita
-        quantityPlanted: p.quantidadePlantadaKg ?? 0,
-        // productId e varietyId ainda não existem na UI; quando tiver, adicione aqui
-        // productId,
-        // varietyId,
-        areaIds: p.areaIds,                          // aqui a API aceita múltiplas áreas
-      })),
-    };
+    try {
+      setSalvando(true);
 
-    console.log('[Payload Final - /api/v1/harvests]', payload);
-    alert('Payload final montado (veja o console). Substitua pelo POST da sua API.');
+      const payload = {
+        name: draft!.nome,
+        startDate: draft!.inicio,  // "YYYY-MM-DD" — o service converte para ISO
+        endDate: draft!.fim,
+        producerId,
+        areaIds: allowedAreas.map((a) => a.id),
+        plantings: draft!.plantios.map((p) => ({
+          name: p.produtoNome,
+          plantingDate: p.inicio,
+          expectedHarvestDate: p.fim,
+          quantityPlanted: p.quantidadePlantadaKg ?? 0,
+          // Se tiver product/variety futuramente, adicione aqui
+          // productId,
+          // varietyId,
+          areaIds: p.areaIds,
+        })),
+      };
 
-    // TODO integração real:
-    // const { isSuccess, errorMessage } = await createSafra(payload);
-    // if (isSuccess) router.push('/controleSafra');
+      const { isSuccess, errorMessage } = await createSafra(payload);
+      setSalvando(false);
+
+      if (isSuccess) {
+        router.push('/controleSafra');
+      } else {
+        alert(errorMessage || 'Não foi possível salvar a safra.');
+      }
+    } catch (e) {
+      setSalvando(false);
+      alert('Erro inesperado ao salvar.');
+    }
   };
 
   return (
@@ -128,12 +136,11 @@ export default function PlantiosPage() {
           value={inicio}
           onChange={(v) => {
             setInicio(v);
-            if (fim && v && v > fim) setFim(''); // mantém coerência
+            if (fim && v && v > fim) setFim('');
           }}
           required
           max={fim || undefined}
         />
-
         <DateFieldModal
           label="Previsão Final"
           value={fim}
@@ -145,9 +152,7 @@ export default function PlantiosPage() {
 
       {/* Nome do plantio */}
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Nome do Plantio
-        </label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Nome do Plantio</label>
         <input
           type="text"
           value={produtoNome}
@@ -159,18 +164,14 @@ export default function PlantiosPage() {
 
       {/* Quantidade plantada */}
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Quantidade Plantada
-        </label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Quantidade Plantada</label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>
 
-      {/* Áreas (somente as da safra) */}
+      {/* Áreas */}
       <div className="mb-2">
         <label className="mb-1 block text-sm font-medium text-gray-700">Áreas</label>
-        <p className="mb-1 text-xs text-gray-500">
-          * Só é possível selecionar áreas já incluídas na safra.
-        </p>
+        <p className="mb-1 text-xs text-gray-500">* Só é possível selecionar áreas já incluídas na safra.</p>
         <SelecionarArea
           areas={selecionadas}
           onChange={setSelecionadas}
@@ -214,9 +215,10 @@ export default function PlantiosPage() {
         <Button
           type="button"
           onClick={handleFinalizar}
-          className="flex-1 bg-green-600 hover:bg-green-700"
+          disabled={salvando}
+          className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60"
         >
-          Finalizar
+          {salvando ? 'Salvando…' : 'Finalizar'}
         </Button>
       </div>
 
