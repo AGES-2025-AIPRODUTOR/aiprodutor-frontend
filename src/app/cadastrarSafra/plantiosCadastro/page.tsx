@@ -1,3 +1,4 @@
+// app/cadastrarSafra/plantiosCadastro/page.tsx
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -14,11 +15,7 @@ import { Input } from '@/components/ui/input';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
-  const n = value
-    .replace(/\s*kg\s*$/i, '')
-    .replace(/\./g, '')
-    .replace(',', '.')
-    .trim();
+  const n = value.replace(/\s*kg\s*$/i, '').replace(/\./g, '').replace(',', '.').trim();
   const v = parseFloat(n);
   return Number.isFinite(v) ? v : null;
 }
@@ -79,8 +76,8 @@ export default function PlantiosPage() {
       inicio,
       fim,
       produtoNome: produtoNome.trim(),
- quantidadePlantadaKg: parseKg(qtdTxt),
-       areaIds: selecionadas.map((a) => a.id),
+      quantidadePlantadaKg: parseKg(qtdTxt),
+      areaIds: selecionadas.map((a) => a.id),
     });
     setInicio('');
     setFim('');
@@ -92,25 +89,31 @@ export default function PlantiosPage() {
   const handleFinalizar = () => {
     if (podeAdicionar) handleAdicionarOutro();
 
+    // ⚠️ Payload já no formato do Swagger para POST /api/v1/harvests
     const payload = {
-      safra: {
-        nome: draft!.nome,
-        dataInicio: draft!.inicio,
-        dataFim: draft!.fim,
-        areaIds: allowedAreas.map((a) => a.id),
-      },
-      plantios: draft!.plantios.map((p) => ({
-        dataInicio: p.inicio,
-        dataFim: p.fim,
-        produto: p.produtoNome,
-  quantidadePlantadaKg: p.quantidadePlantadaKg,
-          areaIds: p.areaIds,
+      name: draft!.nome,
+      startDate: draft!.inicio,  // "YYYY-MM-DD"
+      endDate: draft!.fim,       // "YYYY-MM-DD"
+      producerId: 1,             // TODO: pegar do contexto do produtor
+      areaIds: allowedAreas.map((a) => a.id),
+      plantings: draft!.plantios.map((p) => ({
+        name: p.produtoNome,                         // nome do plantio
+        plantingDate: p.inicio,                      // início do plantio
+        expectedHarvestDate: p.fim,                  // previsão da colheita
+        quantityPlanted: p.quantidadePlantadaKg ?? 0,
+        // productId e varietyId ainda não existem na UI; quando tiver, adicione aqui
+        // productId,
+        // varietyId,
+        areaIds: p.areaIds,                          // aqui a API aceita múltiplas áreas
       })),
     };
 
-    console.log('[Payload Final]', payload);
-    alert('Payload final montado (veja o console). Troque pelo POST da sua API.');
-    // router.push('/alguma/rota');
+    console.log('[Payload Final - /api/v1/harvests]', payload);
+    alert('Payload final montado (veja o console). Substitua pelo POST da sua API.');
+
+    // TODO integração real:
+    // const { isSuccess, errorMessage } = await createSafra(payload);
+    // if (isSuccess) router.push('/controleSafra');
   };
 
   return (
@@ -119,31 +122,31 @@ export default function PlantiosPage() {
       <SafraSteps active="plantios" safraDone title="Adicionar plantio" className="mb-3" />
 
       {/* Datas */}
-       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <DateFieldModal
-        label="Data Início"
-        value={inicio}
-        onChange={(v) => {
-          setInicio(v);
-          if (fim && v && v > fim) setFim(''); // mantém coerência
-        }}
-        required
-        max={fim || undefined}
-      />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <DateFieldModal
+          label="Data Início"
+          value={inicio}
+          onChange={(v) => {
+            setInicio(v);
+            if (fim && v && v > fim) setFim(''); // mantém coerência
+          }}
+          required
+          max={fim || undefined}
+        />
 
-      <DateFieldModal
-        label="Previsão Final"
-        value={fim}
-        onChange={setFim}
-        required
-        min={inicio || undefined}
-      />
-    </div>
+        <DateFieldModal
+          label="Previsão Final"
+          value={fim}
+          onChange={setFim}
+          required
+          min={inicio || undefined}
+        />
+      </div>
 
-      {/* Produto */}
+      {/* Nome do plantio */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          Nome do Produto do Plantio 
+          Nome do Plantio
         </label>
         <input
           type="text"
@@ -154,10 +157,10 @@ export default function PlantiosPage() {
         />
       </div>
 
-      {/* Quantidade */}
+      {/* Quantidade plantada */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          Quantidade Plantada 
+          Quantidade Plantada
         </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>

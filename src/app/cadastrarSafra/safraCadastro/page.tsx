@@ -54,27 +54,26 @@ export default function CadastrarSafraPage() {
       <PageTitle title="Nova Safra" href="/cadastrarSafra" variant="center" />
       <SafraSteps active="safra" title="Adicionar plantio" className="mb-3" />
 
-      {/* Datas – coluna e centralizado */}
-       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <DateFieldModal
-        label="Data Início"
-        value={inicio}
-        onChange={(v) => {
-          setInicio(v);
-          if (fim && v && v > fim) setFim(''); // mantém coerência
-        }}
-        required
-        max={fim || undefined}
-      />
-
-      <DateFieldModal
-        label="Previsão Final"
-        value={fim}
-        onChange={setFim}
-        required
-        min={inicio || undefined}
-      />
-    </div>
+      {/* Datas */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <DateFieldModal
+          label="Data Início"
+          value={inicio}
+          onChange={(v) => {
+            setInicio(v);
+            if (fim && v && v > fim) setFim('');
+          }}
+          required
+          max={fim || undefined}
+        />
+        <DateFieldModal
+          label="Previsão Final"
+          value={fim}
+          onChange={setFim}
+          required
+          min={inicio || undefined}
+        />
+      </div>
 
       {/* Nome */}
       <div className="mb-5">

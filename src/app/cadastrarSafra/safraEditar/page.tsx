@@ -13,27 +13,23 @@ import AreaListModal from '@/components/ui/areasList/AreaList';
 
 import type { AreasEntity } from '@/service/areas';
 
-/**
- * IMPORTANTE (MOCK):
- * Por enquanto este import aponta para um "service" que usa base em memória (mock).
- * Para DESFAZER O MOCK mais tarde:
- * 1) Abra src/service/safras.ts e substitua as implementações de getSafraById/updateSafra/...
- *    pelas chamadas reais (api.get/api.patch).
- *    – OU –
- * 2) Crie src/service/safras.api.ts com as chamadas reais e troque este import para:
- *    import { getSafraById, updateSafra, deactivatePlantio, type SafraEntity } from '@/service/safras.api';
- */
-import { getSafraById, updateSafra, deactivatePlantio, type SafraEntity } from '@/service/safras';
+
+import {
+  getSafraById,
+  updateSafra,
+  deactivatePlantio,
+  type PlantioEntity,
+} from '@/service/safras';
 
 export default function EditarSafraPage() {
   const router = useRouter();
 
-  // ⚠️ Rota fixa + query string: /cadastrarSafra/safraEditar?safraId=1
+  // ⚠️ Rota com query string: /cadastrarSafra/safraEditar?safraId=1
   const search = useSearchParams();
   const safraId = useMemo(() => {
-    const q = search.get('safraId'); // nome do parâmetro na URL
+    const q = search.get('safraId');
     const n = q ? Number(q) : NaN;
-    return Number.isFinite(n) ? n : 1; // fallback para 1 (mock). Remova o fallback quando estiver 100%
+    return Number.isFinite(n) ? n : 1; // fallback (apenas p/ dev local)
   }, [search]);
 
   const [loading, setLoading] = useState(true);
@@ -44,10 +40,10 @@ export default function EditarSafraPage() {
   const [inicio, setInicio] = useState('');
   const [fim, setFim] = useState('');
   const [areas, setAreas] = useState<AreasEntity[]>([]);
-  const [plantios, setPlantios] = useState<SafraEntity['plantios']>([]);
+  const [plantios, setPlantios] = useState<PlantioEntity[]>([]);
   const [abrirAreas, setAbrirAreas] = useState(false);
 
-  // carrega safra (mock ou real – depende do service importado acima)
+  // carrega safra
   useEffect(() => {
     let cancel = false;
     setLoading(true);
@@ -59,31 +55,30 @@ export default function EditarSafraPage() {
         return;
       }
       setNome(response.nome);
-      setInicio(response.inicio.slice(0, 10));
-      setFim(response.fim.slice(0, 10));
+      setInicio(response.inicio); // já vem como YYYY-MM-DD pelo adapter
+      setFim(response.fim);       // idem
       setAreas(response.areas || []);
       setPlantios(response.plantios || []);
       setLoading(false);
     });
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [safraId]);
 
   const podeSalvar = nome.trim() && inicio && fim;
 
   const onSalvar = async () => {
     if (!podeSalvar) return;
+
+    // ⚙️ Payload no formato da API (adapter no service espera isto)
     const body = {
-      nome: nome.trim(),
-      inicio,
-      fim,
+      name: nome.trim(),
+      startDate: inicio,
+      endDate: fim,
       areaIds: areas.map((a) => a.id),
     };
 
-    /**
-     * MOCK: updateSafra apenas atualiza o "_db" em memória.
-     * PARA API REAL: mantendo a mesma assinatura, basta trocar
-     * a implementação no service (ver comentário no topo).
-     */
     const { isSuccess, errorMessage } = await updateSafra(safraId, body);
     if (isSuccess) router.back();
     else alert(errorMessage || 'Falha ao salvar');
@@ -101,10 +96,6 @@ export default function EditarSafraPage() {
     const ok = confirm('Deseja desativar este plantio?');
     if (!ok) return;
 
-    /**
-     * MOCK: apenas remove do array em memória.
-     * PARA API REAL: trocar a implementação no service.
-     */
     const { isSuccess, errorMessage } = await deactivatePlantio(plantioId);
     if (isSuccess) setPlantios((prev) => prev.filter((p) => p.id !== plantioId));
     else alert(errorMessage || 'Erro ao desativar');
@@ -153,7 +144,6 @@ export default function EditarSafraPage() {
       <div className="mb-2">
         <div className="mb-1 flex items-end justify-between">
           <label className="block text-sm font-medium text-gray-700">Áreas</label>
-
         </div>
         <SelecionarArea areas={areas} onChange={setAreas} onAddClick={() => setAbrirAreas(true)} />
       </div>
@@ -167,9 +157,10 @@ export default function EditarSafraPage() {
           <div key={p.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
             <span className="text-sm">Plantio {idx + 1}</span>
             <div className="flex gap-2">
-              {/* Rota atual do projeto para editar plantio (fixa + query) */}
               <Link href={`/cadastrarSafra/plantiosEditar?safraId=${safraId}&plantioId=${p.id}`}>
-                <Button variant="outline" size="sm">Editar</Button>
+                <Button variant="outline" size="sm">
+                  Editar
+                </Button>
               </Link>
               <Button variant="destructive" size="sm" onClick={() => onDesativarPlantio(p.id)}>
                 Desativar
@@ -193,10 +184,7 @@ export default function EditarSafraPage() {
 
       {/* Modal áreas */}
       <AreaListModal
-        /**
-         * MOCK: pode deixar 0 aqui para testes locais.
-         * PARA API REAL: substitua por producerId real vindo de contexto/autenticação.
-         */
+        // TODO: trocar por producerId real (contexto/autenticação)
         producerId={0}
         isOpen={abrirAreas}
         onClose={() => setAbrirAreas(false)}
