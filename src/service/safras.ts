@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { api } from '@/lib/api';
-import { ResponseApi, handleAxiosError } from '@/lib/api';
+import { ResponseApi, handleAxiosError } from '@/lib/response';
 
 // === Tipos usados na listagem ===
 export interface SafraListItem {
