@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/jsx-no-undef */
 'use client';
 
@@ -7,50 +8,48 @@ import { useRouter } from 'next/navigation';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import DateFieldModal from '@/components/ui/dateModal';
-import SelecionarArea from '@/components/ui/selectAreas';
+import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import SafraSteps from '@/app/cadastrarSafra/components/SafraSteps';
 import { useSafraWizard } from '@/context/SafraWizardContext';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import type { AreasEntity } from '@/service/areas';
 import { Input } from '@/components/ui/input';
 import { createSafra } from '@/service/safras';
+import { useQueryClient } from '@tanstack/react-query';
 
-// NEW: services de produto/variedade
+// Produtos / Variedades
 import { getProducts, type Product } from '@/service/products';
 import { getVarietiesByProduct, type Variety } from '@/service/varieties';
-import PickAreasModal from '../components/PickAreasModal';
+
+// >>> Troca: usar o mesmo modal da safra
+import AreaListModal from '../components/areasList/AreaList';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
-  const n = value
-    .replace(/\s*kg\s*$/i, '')
-    .replace(/\./g, '')
-    .replace(',', '.')
-    .trim();
+  const n = value.replace(/\s*kg\s*$/i, '').replace(/\./g, '').replace(',', '.').trim();
   const v = parseFloat(n);
   return Number.isFinite(v) ? v : null;
 }
 
 export default function PlantiosPage() {
-  // 1) Hooks de navegação/contexts
   const router = useRouter();
-  const { draft, addPlantio, removePlantio } = useSafraWizard();
+  const queryClient = useQueryClient();
+  const { draft, addPlantio, removePlantio, reset } = useSafraWizard();
   const { data: producer } = useAgriculturalProducerContext();
   const producerId = producer?.id ?? 1;
 
-  // 2) Hooks básicos da tela
   const [mounted, setMounted] = useState(false);
   const [salvando, setSalvando] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // 3) Form do plantio
+  // Form do plantio atual
   const [inicio, setInicio] = useState<string>('');
   const [fim, setFim] = useState<string>('');
   const [qtdTxt, setQtdTxt] = useState('');
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
   const [abrirModalAreas, setAbrirModalAreas] = useState(false);
 
-  // 4) Produto/Variedade (HOOKS AQUI, ANTES DE QUALQUER RETURN)
+  // Produtos / Variedades
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
@@ -62,12 +61,12 @@ export default function PlantiosPage() {
   const [varietiesLoading, setVarietiesLoading] = useState(false);
   const [varietiesError, setVarietiesError] = useState<string | null>(null);
 
-  // 5) Derivados
+  // Subconjunto permitido = áreas da safra
   const allowedAreas = draft?.areas ?? [];
-  const allowedAreasIds = useMemo(() => new Set(allowedAreas.map((a) => a.id)), [allowedAreas]);
+  const allowedIdsSet = useMemo(() => new Set(allowedAreas.map((a) => a.id)), [allowedAreas]);
+
   const invalid = !draft?.nome || !draft?.inicio || !draft?.fim || allowedAreas.length === 0;
 
-  // 6) Efeitos (pode ter early return DENTRO do useEffect, isso é ok)
   useEffect(() => {
     (async () => {
       const res = await getProducts();
@@ -108,7 +107,6 @@ export default function PlantiosPage() {
     if (invalid) router.replace('/cadastrarSafra');
   }, [mounted, invalid, router]);
 
-  // 7) Só AGORA o guard:
   if (!mounted || invalid) return null;
 
   const podeAdicionar =
@@ -132,25 +130,36 @@ export default function PlantiosPage() {
     });
     setInicio('');
     setFim('');
-    setProductId(''); // NEW
-    setVarietyId(''); // NEW
+    setProductId('');
+    setVarietyId('');
     setQtdTxt('');
     setSelecionadas([]);
   };
 
   const handleFinalizar = async () => {
-    if (podeAdicionar) handleAdicionarOutro();
-
     try {
       setSalvando(true);
 
-      const payload = {
-        name: draft!.nome,
-        startDate: draft!.inicio, // "YYYY-MM-DD"
-        endDate: draft!.fim,
-        producerId,
-        areaIds: allowedAreas.map((a) => a.id),
-        plantings: draft!.plantios.map((p) => ({
+      // inclui o plantio pendente (se estiver válido) no payload
+      const pending =
+        !!inicio &&
+        !!fim &&
+        productId !== '' &&
+        varietyId !== '' &&
+        parseKg(qtdTxt) !== null &&
+        selecionadas.length > 0
+          ? {
+              inicio,
+              fim,
+              productId: Number(productId),
+              varietyId: Number(varietyId),
+              quantidadePlantadaKg: parseKg(qtdTxt) ?? 0,
+              areaIds: selecionadas.map((a) => a.id),
+            }
+          : null;
+
+      const plantingsToSend = [
+        ...draft!.plantios.map((p) => ({
           name: 'Plantio',
           plantingDate: p.inicio,
           expectedHarvestDate: p.fim,
@@ -159,17 +168,41 @@ export default function PlantiosPage() {
           varietyId: p.varietyId,
           areaIds: p.areaIds,
         })),
+        ...(pending
+          ? [
+              {
+                name: 'Plantio',
+                plantingDate: pending.inicio,
+                expectedHarvestDate: pending.fim,
+                quantityPlanted: pending.quantidadePlantadaKg,
+                productId: pending.productId,
+                varietyId: pending.varietyId,
+                areaIds: pending.areaIds,
+              },
+            ]
+          : []),
+      ];
+
+      const payload = {
+        name: draft!.nome,
+        startDate: draft!.inicio,
+        endDate: draft!.fim,
+        producerId,
+        areaIds: allowedAreas.map((a) => a.id),
+        plantings: plantingsToSend,
       };
 
       const { isSuccess, errorMessage } = await createSafra(payload);
-      setSalvando(false);
-
-      if (isSuccess) {
-        router.push('/controleSafra');
-      } else {
+      if (!isSuccess) {
+        setSalvando(false);
         alert(errorMessage || 'Não foi possível salvar a safra.');
+        return;
       }
-    } catch (e) {
+
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
+      router.replace('/controleSafra');
+    } catch {
       setSalvando(false);
       alert('Erro inesperado ao salvar.');
     }
@@ -201,7 +234,7 @@ export default function PlantiosPage() {
         />
       </div>
 
-      {/* Produto e Variedade (IDs) */}
+      {/* Produto e Variedade */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Produto *</label>
@@ -242,18 +275,15 @@ export default function PlantiosPage() {
 
       {/* Quantidade plantada */}
       <div className="mb-4 mt-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Quantidade Plantada *
-        </label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Quantidade Plantada *</label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>
 
       {/* Áreas */}
       <div className="mb-2">
         <label className="mb-1 block text-sm font-medium text-gray-700">Áreas *</label>
-        <p className="mb-1 text-xs text-gray-500">
-          * Só é possível selecionar áreas já incluídas na safra.
-        </p>
+        <p className="mb-1 text-xs text-gray-500">* Só é possível selecionar áreas já incluídas na safra.</p>
+
         <SelecionarArea
           areas={selecionadas}
           onChange={setSelecionadas}
@@ -261,22 +291,23 @@ export default function PlantiosPage() {
         />
       </div>
 
-      {abrirModalAreas && (
-        <PickAreasModal
-          allowed={allowedAreas}
-          already={selecionadas}
-          isOpen={true}
-          onClose={() => setAbrirModalAreas(false)}
-          onConfirm={(picked) => {
-            setSelecionadas((prev) => {
-              const map = new Map<number, AreasEntity>();
-              [...prev, ...picked].forEach((a) => map.set(a.id, a));
-              return [...map.values()];
-            });
-            setAbrirModalAreas(false);
-          }}
-        />
-      )}
+      {/* >>> usar o mesmo modal da safra, mas alimentado com as áreas PERMITIDAS */}
+      <AreaListModal
+        isOpen={abrirModalAreas}
+        onClose={() => setAbrirModalAreas(false)}
+        onConfirm={(picked: any[]) => {
+          // subset garantido + dedupe
+          const filtradas = picked.filter((a) => allowedIdsSet.has(a.id));
+          setSelecionadas((prev) => {
+            const map = new Map<number, AreasEntity>();
+            [...prev, ...filtradas].forEach((a) => map.set(a.id, a));
+            return [...map.values()];
+          });
+          setAbrirModalAreas(false);
+        }}
+        areas={allowedAreas}                         // << usa a lista da safra (sem fetch)
+        excludeIds={selecionadas.map((a) => a.id)}   // << oculta as já escolhidas aqui
+      />
 
       {/* Ações */}
       <div className="mt-4">
@@ -331,5 +362,3 @@ export default function PlantiosPage() {
     </main>
   );
 }
-
-// (PickAreasModal permanece igual)

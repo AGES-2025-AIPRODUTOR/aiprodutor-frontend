@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import DateFieldModal from '@/components/ui/dateModal';
-import SelecionarArea from '@/components/ui/selectAreas';
+import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import { Input } from '@/components/ui/input';
 import type { AreasEntity } from '@/service/areas';
 
@@ -15,14 +15,18 @@ import { getSafraById } from '@/service/safras';
 
 // ↳ plantio agora vem do service real baseado no Swagger
 import {
-  getPlantioById,      // alias de getPlantingById
-  updatePlantio,       // alias de updatePlanting
-  type PlantioUpdate,  // alias de PlantingUpdate
+  getPlantioById, // alias de getPlantingById
+  updatePlantio, // alias de updatePlanting
+  type PlantioUpdate, // alias de PlantingUpdate
 } from '@/service/plantios';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
-  const n = value.replace(/\s*kg\s*$/i, '').replace(/\./g, '').replace(',', '.').trim();
+  const n = value
+    .replace(/\s*kg\s*$/i, '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+    .trim();
   const v = parseFloat(n);
   return Number.isFinite(v) ? v : null;
 }
@@ -46,10 +50,10 @@ export default function EditarPlantioPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  const [inicio, setInicio] = useState('');      // plantingDate
-  const [fim, setFim] = useState('');            // expectedHarvestDate
+  const [inicio, setInicio] = useState(''); // plantingDate
+  const [fim, setFim] = useState(''); // expectedHarvestDate
   const [produtoNome, setProdutoNome] = useState(''); // name
-  const [qtdTxt, setQtdTxt] = useState('');      // quantityPlanted (string com " kg")
+  const [qtdTxt, setQtdTxt] = useState(''); // quantityPlanted (string com " kg")
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
   const [allowedAreas, setAllowedAreas] = useState<AreasEntity[]>([]);
   const [abrirAreas, setAbrirAreas] = useState(false);
@@ -85,13 +89,15 @@ export default function EditarPlantioPage() {
       );
 
       // API retorna p.areas (objetos). Mapeamos para objetos da safra:
-      const idsSelecionadas = new Set((p.areas ?? []).map(a => a.id));
-      setSelecionadas((s.areas || []).filter(a => idsSelecionadas.has(a.id)));
+      const idsSelecionadas = new Set((p.areas ?? []).map((a) => a.id));
+      setSelecionadas((s.areas || []).filter((a) => idsSelecionadas.has(a.id)));
 
       setLoading(false);
     });
 
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [sid, pid]);
 
   const podeSalvar =
@@ -124,7 +130,11 @@ export default function EditarPlantioPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col px-4 pb-24 pt-2">
-      <PageTitle title="Editar Plantio" href={`/cadastrarSafra/safraEditar?safraId=${sid}`} variant="center" />
+      <PageTitle
+        title="Editar Plantio"
+        href={`/cadastrarSafra/safraEditar?safraId=${sid}`}
+        variant="center"
+      />
 
       {/* Datas */}
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -160,7 +170,9 @@ export default function EditarPlantioPage() {
 
       {/* Quantidade plantada */}
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Quantidade Plantada *</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Quantidade Plantada *
+        </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>
 
@@ -188,10 +200,18 @@ export default function EditarPlantioPage() {
 
       {/* Ações */}
       <div className="mt-6 flex gap-3">
-        <Button variant="outline" className="flex-1" onClick={() => router.push(`/cadastrarSafra/safraEditar?safraId=${sid}`)}>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => router.push(`/cadastrarSafra/safraEditar?safraId=${sid}`)}
+        >
           Cancelar
         </Button>
-        <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={onSalvar} disabled={!podeSalvar}>
+        <Button
+          className="flex-1 bg-green-600 hover:bg-green-700"
+          onClick={onSalvar}
+          disabled={!podeSalvar}
+        >
           Editar
         </Button>
       </div>
@@ -201,25 +221,48 @@ export default function EditarPlantioPage() {
 
 /** Modal local para escolher subset de áreas da safra */
 function PickAreasModal({
-  allowed, already, onConfirm, onClose,
-}: { allowed: AreasEntity[]; already: AreasEntity[]; onConfirm: (a: AreasEntity[]) => void; onClose: () => void }) {
+  allowed,
+  already,
+  onConfirm,
+  onClose,
+}: {
+  allowed: AreasEntity[];
+  already: AreasEntity[];
+  onConfirm: (a: AreasEntity[]) => void;
+  onClose: () => void;
+}) {
   const [ids, setIds] = useState<Set<number>>(new Set(already.map((a) => a.id)));
-  const toggle = (id: number) => setIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: number) =>
+    setIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg">
         <h3 className="text-lg font-semibold">Selecione áreas da safra</h3>
         <div className="mt-3 max-h-[50vh] space-y-2 overflow-y-auto">
-          {allowed.map(a => (
+          {allowed.map((a) => (
             <label key={a.id} className="flex items-center gap-2 rounded border p-2">
-              <input type="checkbox" checked={ids.has(a.id)} onChange={() => toggle(a.id)} className="h-4 w-4 accent-green-600" />
+              <input
+                type="checkbox"
+                checked={ids.has(a.id)}
+                onChange={() => toggle(a.id)}
+                className="h-4 w-4 accent-green-600"
+              />
               <span className="truncate">{a.name}</span>
             </label>
           ))}
         </div>
         <div className="mt-4 flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
-          <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => onConfirm(allowed.filter(a => ids.has(a.id)))}>
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            className="flex-1 bg-green-600 hover:bg-green-700"
+            onClick={() => onConfirm(allowed.filter((a) => ids.has(a.id)))}
+          >
             Concluir
           </Button>
         </div>

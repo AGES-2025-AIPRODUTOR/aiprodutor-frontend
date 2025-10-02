@@ -8,18 +8,12 @@ import Link from 'next/link';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import DateFieldModal from '@/components/ui/dateModal';
-import SelecionarArea from '@/components/ui/selectAreas';
-import AreaListModal from '@/components/ui/areasList/AreaList';
+import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
+import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList';
 
 import type { AreasEntity } from '@/service/areas';
 
-
-import {
-  getSafraById,
-  updateSafra,
-  deactivatePlantio,
-  type PlantioEntity,
-} from '@/service/safras';
+import { getSafraById, updateSafra, deactivatePlantio, type PlantioEntity } from '@/service/safras';
 
 export default function EditarSafraPage() {
   const router = useRouter();
@@ -56,7 +50,7 @@ export default function EditarSafraPage() {
       }
       setNome(response.nome);
       setInicio(response.inicio); // já vem como YYYY-MM-DD pelo adapter
-      setFim(response.fim);       // idem
+      setFim(response.fim); // idem
       setAreas(response.areas || []);
       setPlantios(response.plantios || []);
       setLoading(false);
@@ -168,7 +162,9 @@ export default function EditarSafraPage() {
             </div>
           </div>
         ))}
-        {plantios.length === 0 && <p className="text-sm text-gray-500">Nenhum plantio cadastrado.</p>}
+        {plantios.length === 0 && (
+          <p className="text-sm text-gray-500">Nenhum plantio cadastrado.</p>
+        )}
       </div>
 
       {/* Ações */}

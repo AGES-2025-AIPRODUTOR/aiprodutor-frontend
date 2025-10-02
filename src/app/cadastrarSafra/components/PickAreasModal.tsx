@@ -21,6 +21,29 @@ type Props = {
   title?: string;
 };
 
+// === helper: formata área em m²/ha com separador de milhares ===
+function formatArea(raw: unknown) {
+  const val = Number(raw);
+  if (!Number.isFinite(val) || val <= 0) return '—';
+
+  // se for >= 10.000 m² (~1 ha), mostra em hectares
+  if (val >= 10_000) {
+    const ha = val / 10_000; // 1 ha = 10.000 m²
+    return (
+      new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(ha) +
+      ' ha'
+    );
+  }
+
+  // senão, mostra em m²
+  return (
+    new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(val) + ' m²'
+  );
+}
+
 export default function PickAreasModal({
   allowed,
   already = [],
@@ -29,12 +52,10 @@ export default function PickAreasModal({
   onClose,
   title = 'Selecione áreas da safra',
 }: Props) {
-  // Se usar isOpen controlado, evita render sem necessidade
-  
+  // hooks sempre no topo
   const initial = useMemo(() => new Set(already.map((a) => a.id)), [already]);
   const [ids, setIds] = useState<Set<number>>(initial);
-  
-  if (!isOpen) return null;
+
   const toggle = (id: number) =>
     setIds((prev) => {
       const n = new Set(prev);
@@ -55,6 +76,9 @@ export default function PickAreasModal({
     const picked = allowed.filter((a) => ids.has(a.id));
     onConfirm(picked);
   };
+
+  // só condiciona a renderização (sem afetar hooks)
+  if (!isOpen) return null;
 
   return (
     <div
@@ -112,8 +136,10 @@ export default function PickAreasModal({
                 />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{a.name}</p>
-                  {'areaM2' in a && a.areaM2 && (
-                    <p className="truncate text-xs text-gray-500">{String((a as any).areaM2)} m²</p>
+                  {'areaM2' in a && (a as any).areaM2 != null && (
+                    <p className="truncate text-xs text-gray-500">
+                      {formatArea((a as any).areaM2)}
+                    </p>
                   )}
                 </div>
               </label>
