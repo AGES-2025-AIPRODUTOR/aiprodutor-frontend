@@ -3,93 +3,48 @@ import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Calendar, MapPin, Sprout, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { StatusBadge, StatusType } from '../../components/statusBadge';
+import { StatusBadge } from '../../components/statusBadge';
 import { PlantingCard } from './components/plantingCard';
-import { getPlantingBySafraId } from '@/service/history';
+import { getHarvestDetail } from '@/service/history';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorMessage, SafraDetailSkeleton } from '@/components/SafraStates';
-
-// Mock data - remover depois da integração com a api
-const getSafraById = (id: string) => {
-  const safras = [
-    {
-      id: 1,
-      nome: 'Safra de Soja',
-      status: 'Concluído' as StatusType,
-      dataColheita: '10/08/2025',
-      dataPlantio: '01/03/2025',
-      quantidadePlantada: '500kg',
-      tamanho: 'Grande',
-      nomeArea: 'Area 1',
-      descricao: 'Safra de soja da temporada 2025, cultivada na área principal da propriedade.',
-      variedade: 'Soja BRS 123',
-      produtividade: '3.2 ton/ha',
-      investimento: 'R$ 15.000,00',
-      receita: 'R$ 28.500,00',
-      lucro: 'R$ 13.500,00',
-    },
-    {
-      id: 2,
-      nome: 'Safra de Milho',
-      status: 'Em Andamento' as StatusType,
-      dataPlantio: '05/03/2025',
-      dataColheita: '12/09/2025',
-      quantidadePlantada: '200kg',
-      tamanho: 'Médio',
-      nomeArea: 'Area 2',
-      descricao: 'Safra de milho em desenvolvimento, com previsão de colheita para setembro.',
-      variedade: 'Milho Híbrido AG 9030',
-      produtividade: 'Em desenvolvimento',
-      investimento: 'R$ 8.000,00',
-      receita: 'Previsto: R$ 18.000,00',
-      lucro: 'Previsto: R$ 10.000,00',
-    },
-    {
-      id: 3,
-      nome: 'Safra de Arroz',
-      status: 'Desativado' as StatusType,
-      dataPlantio: '15/02/2025',
-      dataColheita: '20/07/2025',
-      quantidadePlantada: '300kg',
-      tamanho: 'Médio',
-      nomeArea: 'Area 3',
-      descricao: 'Safra de arroz interrompida devido a problemas climáticos.',
-      variedade: 'Arroz IRGA 424',
-      produtividade: 'Não concluído',
-      investimento: 'R$ 12.000,00',
-      receita: 'R$ 0,00',
-      lucro: 'R$ -12.000,00',
-    },
-  ];
-
-  return safras.find((safra) => safra.id === parseInt(id));
-};
+import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
+import { formatDateToBrazilian, mapStatusToDisplay } from '@/service/history';
 
 const SafraDetailPage = () => {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const { data: producerData } = useAgriculturalProducerContext();
+  
+  const safraId = params?.safraId || params?.id;
+  const safraIdNumber = safraId ? Number(safraId) : null;
 
-  const { isError, isLoading } = useQuery({
-    queryKey: ['historyPlanting', id],
+  const {
+    data: response,
+    isError,
+    isLoading,
+  } = useQuery({
+    queryKey: ['harvestDetail', producerData.id, safraIdNumber],
     queryFn: () => {
-      return getPlantingBySafraId(parseInt(id) ?? 1);
+      if (!safraIdNumber) throw new Error('Safra ID is required');
+      return getHarvestDetail(producerData.id ?? 1, safraIdNumber);
     },
+    enabled: !!producerData.id && !!safraIdNumber,
   });
-
-  const safra = getSafraById(id);
 
   if (isLoading) {
     return <SafraDetailSkeleton />;
   }
 
-  if (isError) {
+  if (isError || !response?.isSuccess) {
     return <ErrorMessage />;
   }
 
+  const safra = response.response;
+
   if (!safra) {
     return (
-      <div className="text-center py-8 ">
+      <div className="text-center py-8">
         <div className="flex flex-col items-center gap-3">
           <div className="text-gray-600">
             <p className="font-medium">A safra solicitada não foi encontrada.</p>
@@ -107,25 +62,19 @@ const SafraDetailPage = () => {
     );
   }
 
-  // Mock plantio data para os plantios
-  const plantiosData = [
-    {
-      id: 1,
-      name: 'Soja com Trigo',
-      initialDate: safra.dataPlantio,
-      finalDate: safra.dataColheita,
-      expectedQuantity: safra.quantidadePlantada,
-      area: safra.nomeArea,
-    },
-    {
-      id: 2,
-      name: 'Plantio Teste - Milho',
-      initialDate: '15/03/2025',
-      finalDate: '20/08/2025',
-      expectedQuantity: '300kg',
-      area: 'Área Sul',
-    },
-  ];
+  const plantiosData = safra.planting.map((planting) => ({
+    id: planting.id,
+    name: `Plantio #${planting.id}`,
+    initialDate: formatDateToBrazilian(planting.initialDate),
+    finalDate: formatDateToBrazilian(planting.estimatedEndDate),
+    expectedQuantity: planting.qtyEstimated,
+    area: planting.areaName.join(', '),
+  }));
+
+  const dataInicio = formatDateToBrazilian(safra.safraInitialDate);
+  const dataFim = formatDateToBrazilian(safra.safraEndDate);
+  const areaNames = safra.areas.map(area => area.name).join(', ');
+  const statusDisplay = mapStatusToDisplay(safra.status);
 
   return (
     <div className="min-h-screen bg-white px-2">
@@ -137,21 +86,21 @@ const SafraDetailPage = () => {
               className="cursor-pointer"
               onClick={() => router.push('/historicoSafra')}
             />
-            <h1 className="text-xl font-bold text-gray-900">{safra.nome}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{safra.safraName}</h1>
           </div>
-          <StatusBadge status={safra.status} />
+          <StatusBadge status={statusDisplay} />
         </div>
 
         <div className="flex items-center gap-6 mb-3 text-gray-600">
           <div className="flex items-center gap-2">
             <Calendar size={20} />
             <span style={{ fontSize: '14px' }}>
-              {safra.dataPlantio} - {safra.dataColheita}
+              {dataInicio} - {dataFim}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <MapPin size={20} />
-            <span style={{ fontSize: '14px' }}>{safra.nomeArea}</span>
+            <span style={{ fontSize: '14px' }}>{areaNames}</span>
           </div>
         </div>
 
@@ -167,7 +116,8 @@ const SafraDetailPage = () => {
             className="px-3 py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
             style={{ backgroundColor: '#38A068', fontSize: '12px' }}
             onClick={() => {
-              console.log('Navigate to map for area:', safra.nomeArea);
+              console.log('Navigate to map for areas:', areaNames);
+              // Implementar navegação para o mapa
             }}
           >
             <Map size={16} />
@@ -181,9 +131,15 @@ const SafraDetailPage = () => {
           <h3 className="font-semibold text-gray-900" style={{ fontSize: '16px' }}>
             Plantios desta Safra
           </h3>
-          {plantiosData.map((plantio) => (
-            <PlantingCard key={plantio.id} planting={plantio} />
-          ))}
+          {plantiosData.length > 0 ? (
+            plantiosData.map((plantio) => (
+              <PlantingCard key={plantio.id} planting={plantio} />
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>Nenhum plantio cadastrado para esta safra</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
