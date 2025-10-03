@@ -9,7 +9,7 @@ import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
-import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList'; // << mesmo modal do cadastro
+import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList';
 import { Input } from '@/components/ui/input';
 
 import type { AreasEntity } from '@/service/areas';
@@ -46,18 +46,26 @@ export default function EditarPlantioPage() {
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // campos do formulário (novo contrato)
+  const [inicio, setInicio] = useState('');              // plantingDate (YYYY-MM-DD)
+  const [fimPlantio, setFimPlantio] = useState('');      // plantingEndDate (YYYY-MM-DD) opcional
+  const [fimColheita, setFimColheita] = useState('');    // expectedHarvestDate (YYYY-MM-DD) opcional
+  const [nomePlantio, setNomePlantio] = useState('');    // name
+  const [qtdTxt, setQtdTxt] = useState('');              // quantityPlanted (string com " kg")
+  const [qtdColhidaTxt, setQtdColhidaTxt] = useState(''); // quantityHarvested (string com " kg")
+  const [produtividadeTxt, setProdutividadeTxt] = useState(''); // expectedYield (number)
+
+  // manter product/variety do back (se não editar aqui)
   const [origProductId, setOrigProductId] = useState<number | null>(null);
   const [origVarietyId, setOrigVarietyId] = useState<number | null>(null);
-  const [origQuantityHarvested, setOrigQuantityHarvested] = useState<number | null>(null);
-  const [inicio, setInicio] = useState(''); // plantingDate
-  const [fim, setFim] = useState(''); // expectedHarvestDate
-  const [produtoNome, setProdutoNome] = useState(''); // name
-  const [qtdTxt, setQtdTxt] = useState(''); // quantityPlanted (string com " kg")
+
+  // Áreas apenas para referência/UX (não vai no PATCH novo)
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
   const [allowedAreas, setAllowedAreas] = useState<AreasEntity[]>([]);
   const [abrirAreas, setAbrirAreas] = useState(false);
 
-  // carrega safra (para restringir áreas) + plantio
+  // carrega safra (para restringir visualmente as áreas) + plantio
   useEffect(() => {
     let cancel = false;
 
@@ -80,23 +88,33 @@ export default function EditarPlantioPage() {
       const p = plantioRes.response;
 
       setAllowedAreas(s.areas || []);
+
       setInicio(p.plantingDate?.slice(0, 10) ?? '');
-      setFim(p.expectedHarvestDate ? p.expectedHarvestDate.slice(0, 10) : '');
-      setProdutoNome(p.name || '');
+      setFimPlantio(p.plantingEndDate ? p.plantingEndDate.slice(0, 10) : '');
+      setFimColheita(p.expectedHarvestDate ? p.expectedHarvestDate.slice(0, 10) : '');
+      setNomePlantio(p.name || '');
+
       setQtdTxt(
         p.quantityPlanted != null && Number.isFinite(p.quantityPlanted)
           ? `${p.quantityPlanted} kg`
           : ''
       );
-      setOrigProductId(p.productId ?? null);
-      setOrigVarietyId(p.varietyId ?? null);
-      setOrigQuantityHarvested(
-        // se o DTO tiver, preserve; se não existir no back, pode deixar null
-        (p as any).quantityHarvested ?? null
+      setQtdColhidaTxt(
+        (p as any).quantityHarvested != null && Number.isFinite((p as any).quantityHarvested)
+          ? `${(p as any).quantityHarvested} kg`
+          : ''
+      );
+      setProdutividadeTxt(
+        (p as any).expectedYield != null && Number.isFinite((p as any).expectedYield)
+          ? String((p as any).expectedYield)
+          : ''
       );
 
-      // API retorna p.areas (objetos). Mantemos apenas as que pertencem à safra:
-      const idsSelecionadas = new Set((p.areas ?? []).map((a: { id: any }) => a.id));
+      setOrigProductId(p.productId ?? null);
+      setOrigVarietyId(p.varietyId ?? null);
+
+      // API pode retornar p.areas; mostramos apenas as que pertencem à safra
+      const idsSelecionadas = new Set((p as any).areas?.map((a: { id: number }) => a.id) ?? []);
       setSelecionadas((s.areas || []).filter((a: AreasEntity) => idsSelecionadas.has(a.id)));
 
       setLoading(false);
@@ -107,29 +125,27 @@ export default function EditarPlantioPage() {
     };
   }, [sid, pid]);
 
+  // validações mínimas (contrato novo requer: name, plantingDate, harvestId; os demais são opcionais)
   const podeSalvar =
     !!inicio &&
-    !!fim &&
-    produtoNome.trim().length > 0 &&
-    parseKg(qtdTxt) !== null &&
-    selecionadas.length > 0;
+    nomePlantio.trim().length > 0 &&
+    parseKg(qtdTxt) !== null;
 
   const onSalvar = async () => {
     if (!podeSalvar) return;
 
+    // monta payload conforme novo contrato
     const body: PlantioUpdate = {
-      harvestId: sid, // <-- ADICIONE
-      areaId: selecionadas[0]?.id,
-
-      name: produtoNome.trim(),
-      plantingDate: inicio,
-      expectedHarvestDate: fim || null,
+      harvestId: sid,                      // obrigatório
+      name: nomePlantio.trim(),            // obrigatório
+      plantingDate: inicio,                // "YYYY-MM-DD" (service converte p/ ISO Z)
+      plantingEndDate: fimPlantio || null, // opcional
+      expectedHarvestDate: fimColheita || null, // opcional
       quantityPlanted: parseKg(qtdTxt) ?? 0,
-
-      // preserve o que veio
-      productId: origProductId,
-      varietyId: origVarietyId,
-      quantityHarvested: origQuantityHarvested,
+      quantityHarvested: parseKg(qtdColhidaTxt) ?? null,
+      productId: origProductId,            // preservado (se não edita aqui)
+      varietyId: origVarietyId,            // preservado
+      expectedYield: produtividadeTxt ? Number(produtividadeTxt) : null,
     };
 
     const { isSuccess, errorMessage } = await updatePlantio(pid, body);
@@ -154,21 +170,33 @@ export default function EditarPlantioPage() {
       {/* Datas */}
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <DateFieldModal
-          label="Data Início"
+          label="Data Início do Plantio"
           value={inicio}
           onChange={(v) => {
             setInicio(v);
-            if (fim && v && v > fim) setFim('');
+            if (fimPlantio && v && v > fimPlantio) setFimPlantio('');
+            if (fimColheita && v && v > fimColheita) setFimColheita('');
           }}
           required
-          max={fim || undefined}
+          max={(fimPlantio || fimColheita) || undefined}
         />
         <DateFieldModal
-          label="Previsão Final"
-          value={fim}
-          onChange={setFim}
-          required
+          label="Término do Plantio (opcional)"
+          value={fimPlantio}
+          onChange={(v) => {
+            setFimPlantio(v);
+            if (v && fimColheita && v > fimColheita) setFimColheita('');
+          }}
           min={inicio || undefined}
+        />
+      </div>
+
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <DateFieldModal
+          label="Previsão de Colheita (opcional)"
+          value={fimColheita}
+          onChange={setFimColheita}
+          min={(fimPlantio || inicio) || undefined}
         />
       </div>
 
@@ -176,22 +204,43 @@ export default function EditarPlantioPage() {
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">Nome do Plantio *</label>
         <input
-          value={produtoNome}
-          onChange={(e) => setProdutoNome(e.target.value)}
+          value={nomePlantio}
+          onChange={(e) => setNomePlantio(e.target.value)}
           placeholder="Ex.: Plantio de tomate"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      {/* Quantidade plantada */}
+      {/* Quantidades */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          Quantidade Plantada *
+          Quantidade Plantada * 
         </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>
 
-      {/* Áreas (apenas as da safra) */}
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Quantidade Colhida (opcional)
+          </label>
+          <Input unit="kg" value={qtdColhidaTxt} onChange={(e) => setQtdColhidaTxt(e.target.value)} />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Produtividade Esperada (número)
+          </label>
+          <input
+            type="number"
+            value={produtividadeTxt}
+            onChange={(e) => setProdutividadeTxt(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="ex.: 800000"
+          />
+        </div>
+      </div>
+
+      {/* Áreas (apenas referência visual – não é enviado no PATCH novo) */}
       <div className="mb-2">
         <SelecionarArea
           areas={selecionadas}
@@ -200,7 +249,7 @@ export default function EditarPlantioPage() {
         />
       </div>
 
-      {/* Modal de áreas — mesmo do cadastro de safra */}
+      {/* Modal de áreas — mesmo do cadastro de safra (não afeta o PATCH, apenas ajuda o usuário) */}
       <AreaListModal
         isOpen={abrirAreas}
         onClose={() => setAbrirAreas(false)}
@@ -211,8 +260,8 @@ export default function EditarPlantioPage() {
           setSelecionadas(filtradas);
           setAbrirAreas(false);
         }}
-        areas={allowedAreas} // usa lista pronta (sem fetch)
-        excludeIds={[]} // no editar, mostramos todas as da safra
+        areas={allowedAreas}        // usa lista pronta (sem fetch)
+        excludeIds={[]}             // no editar, mostramos todas as da safra
       />
 
       {/* Ações */}
@@ -229,7 +278,7 @@ export default function EditarPlantioPage() {
           onClick={onSalvar}
           disabled={!podeSalvar}
         >
-          Editar
+          Salvar
         </Button>
       </div>
     </main>

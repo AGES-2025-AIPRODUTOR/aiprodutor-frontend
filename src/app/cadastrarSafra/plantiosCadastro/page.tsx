@@ -4,6 +4,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
@@ -15,18 +16,31 @@ import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerCo
 import type { AreasEntity } from '@/service/areas';
 import { Input } from '@/components/ui/input';
 import { createSafra } from '@/service/safras';
-import { useQueryClient } from '@tanstack/react-query';
 
 // Produtos / Variedades
 import { getProducts, type Product } from '@/service/products';
 import { getVarietiesByProduct, type Variety } from '@/service/varieties';
 
-// >>> Troca: usar o mesmo modal da safra
+// usa o mesmo modal da tela de safra
 import AreaListModal from '../components/areasList/AreaList';
+
+// modal de confirmação (shadcn)
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
-  const n = value.replace(/\s*kg\s*$/i, '').replace(/\./g, '').replace(',', '.').trim();
+  const n = value
+    .replace(/\s*kg\s*$/i, '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+    .trim();
   const v = parseFloat(n);
   return Number.isFinite(v) ? v : null;
 }
@@ -43,6 +57,7 @@ export default function PlantiosPage() {
   useEffect(() => setMounted(true), []);
 
   // Form do plantio atual
+  const [plantioNome, setPlantioNome] = useState(''); // NEW: nome do plantio
   const [inicio, setInicio] = useState<string>('');
   const [fim, setFim] = useState<string>('');
   const [qtdTxt, setQtdTxt] = useState('');
@@ -67,6 +82,28 @@ export default function PlantiosPage() {
 
   const invalid = !draft?.nome || !draft?.inicio || !draft?.fim || allowedAreas.length === 0;
 
+  // lookup para nomes (sumário bonitinho)
+  const productNameOf = (id?: number | '') =>
+    id ? (products.find((p) => p.id === id)?.name ?? `#${id}`) : '—';
+  const varietyNameOf = (id?: number | '') =>
+    id ? (varieties.find((v) => v.id === id)?.name ?? `#${id}`) : '—';
+  const areaNameMap = useMemo(
+    () => new Map(allowedAreas.map((a) => [a.id, a.name] as const)),
+    [allowedAreas]
+  );
+  // ====== CONFIRMAÇÃO ======
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [plantingsPreview, setPlantingsPreview] = useState<
+    {
+      name: string;
+      productId?: number;
+      varietyId?: number;
+      plantingDate: string;
+      expectedHarvestDate?: string;
+      quantityPlanted: number;
+      areaIds: number[];
+    }[]
+  >([]);
   useEffect(() => {
     (async () => {
       const res = await getProducts();
@@ -110,6 +147,7 @@ export default function PlantiosPage() {
   if (!mounted || invalid) return null;
 
   const podeAdicionar =
+    !!plantioNome.trim() &&
     !!inicio &&
     !!fim &&
     productId !== '' &&
@@ -117,17 +155,8 @@ export default function PlantiosPage() {
     parseKg(qtdTxt) !== null &&
     selecionadas.length > 0;
 
-  const handleAdicionarOutro = () => {
-    if (!podeAdicionar) return;
-    addPlantio({
-      id: crypto.randomUUID(),
-      inicio,
-      fim,
-      productId: Number(productId),
-      varietyId: Number(varietyId),
-      quantidadePlantadaKg: parseKg(qtdTxt),
-      areaIds: selecionadas.map((a) => a.id),
-    });
+  const limparForm = () => {
+    setPlantioNome('');
     setInicio('');
     setFim('');
     setProductId('');
@@ -136,52 +165,65 @@ export default function PlantiosPage() {
     setSelecionadas([]);
   };
 
-  const handleFinalizar = async () => {
+  const handleAdicionarOutro = () => {
+    if (!podeAdicionar) return;
+    // NOTE: acrescentei "name" no draft – ver ajuste no SafraWizard abaixo
+    addPlantio({
+      id: crypto.randomUUID(),
+      name: plantioNome.trim(), // NEW
+      inicio,
+      fim,
+      productId: Number(productId),
+      varietyId: Number(varietyId),
+      quantidadePlantadaKg: parseKg(qtdTxt),
+      areaIds: selecionadas.map((a) => a.id),
+    } as any);
+    limparForm();
+  };
+
+  const abrirConfirmacao = () => {
+    // monta prévia incluindo o "pendente" (se válido)
+    const pendenteValido =
+      !!plantioNome.trim() &&
+      !!inicio &&
+      !!fim &&
+      productId !== '' &&
+      varietyId !== '' &&
+      parseKg(qtdTxt) !== null &&
+      selecionadas.length > 0;
+
+    const mappedDraft = draft!.plantios.map((p: any) => ({
+      name: p.name ?? 'Plantio', // fallback
+      productId: p.productId,
+      varietyId: p.varietyId,
+      plantingDate: p.inicio,
+      expectedHarvestDate: p.fim,
+      quantityPlanted: p.quantidadePlantadaKg ?? 0,
+      areaIds: p.areaIds,
+    }));
+
+    const pending = pendenteValido
+      ? [
+          {
+            name: plantioNome.trim(),
+            productId: Number(productId),
+            varietyId: Number(varietyId),
+            plantingDate: inicio,
+            expectedHarvestDate: fim,
+            quantityPlanted: parseKg(qtdTxt) ?? 0,
+            areaIds: selecionadas.map((a) => a.id),
+          },
+        ]
+      : [];
+
+    const preview = [...mappedDraft, ...pending];
+    setPlantingsPreview(preview);
+    setShowConfirm(true);
+  };
+
+  const salvarAgora = async () => {
     try {
       setSalvando(true);
-
-      // inclui o plantio pendente (se estiver válido) no payload
-      const pending =
-        !!inicio &&
-        !!fim &&
-        productId !== '' &&
-        varietyId !== '' &&
-        parseKg(qtdTxt) !== null &&
-        selecionadas.length > 0
-          ? {
-              inicio,
-              fim,
-              productId: Number(productId),
-              varietyId: Number(varietyId),
-              quantidadePlantadaKg: parseKg(qtdTxt) ?? 0,
-              areaIds: selecionadas.map((a) => a.id),
-            }
-          : null;
-
-      const plantingsToSend = [
-        ...draft!.plantios.map((p) => ({
-          name: 'Plantio',
-          plantingDate: p.inicio,
-          expectedHarvestDate: p.fim,
-          quantityPlanted: p.quantidadePlantadaKg ?? 0,
-          productId: p.productId,
-          varietyId: p.varietyId,
-          areaIds: p.areaIds,
-        })),
-        ...(pending
-          ? [
-              {
-                name: 'Plantio',
-                plantingDate: pending.inicio,
-                expectedHarvestDate: pending.fim,
-                quantityPlanted: pending.quantidadePlantadaKg,
-                productId: pending.productId,
-                varietyId: pending.varietyId,
-                areaIds: pending.areaIds,
-              },
-            ]
-          : []),
-      ];
 
       const payload = {
         name: draft!.nome,
@@ -189,7 +231,7 @@ export default function PlantiosPage() {
         endDate: draft!.fim,
         producerId,
         areaIds: allowedAreas.map((a) => a.id),
-        plantings: plantingsToSend,
+        plantings: plantingsPreview,
       };
 
       const { isSuccess, errorMessage } = await createSafra(payload);
@@ -207,6 +249,8 @@ export default function PlantiosPage() {
       alert('Erro inesperado ao salvar.');
     }
   };
+
+  // ====== FIM CONFIRMAÇÃO ======
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col px-4 pb-24 pt-2">
@@ -231,6 +275,17 @@ export default function PlantiosPage() {
           onChange={setFim}
           required
           min={inicio || undefined}
+        />
+      </div>
+
+      {/* Nome do Plantio */}
+      <div className="mt-4">
+        <label className="mb-1 block text-sm font-medium text-gray-700">Nome do Plantio *</label>
+        <input
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Ex.: Plantio de Tomate - Talhão 1"
+          value={plantioNome}
+          onChange={(e) => setPlantioNome(e.target.value)}
         />
       </div>
 
@@ -275,14 +330,18 @@ export default function PlantiosPage() {
 
       {/* Quantidade plantada */}
       <div className="mb-4 mt-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Quantidade Plantada *</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Quantidade Plantada *
+        </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>
 
       {/* Áreas */}
       <div className="mb-2">
         <label className="mb-1 block text-sm font-medium text-gray-700">Áreas *</label>
-        <p className="mb-1 text-xs text-gray-500">* Só é possível selecionar áreas já incluídas na safra.</p>
+        <p className="mb-1 text-xs text-gray-500">
+          * Só é possível selecionar áreas já incluídas na safra.
+        </p>
 
         <SelecionarArea
           areas={selecionadas}
@@ -291,12 +350,14 @@ export default function PlantiosPage() {
         />
       </div>
 
-      {/* >>> usar o mesmo modal da safra, mas alimentado com as áreas PERMITIDAS */}
+      {/* mesmo modal da safra — recebendo as áreas permitidas */}
       <AreaListModal
         isOpen={abrirModalAreas}
         onClose={() => setAbrirModalAreas(false)}
-        onConfirm={(picked: any[]) => {
-          // subset garantido + dedupe
+        areas={allowedAreas}
+        excludeIds={selecionadas.map((a) => a.id)}
+        onConfirm={(picked: AreasEntity[]) => {
+          // subset + dedupe
           const filtradas = picked.filter((a) => allowedIdsSet.has(a.id));
           setSelecionadas((prev) => {
             const map = new Map<number, AreasEntity>();
@@ -305,8 +366,6 @@ export default function PlantiosPage() {
           });
           setAbrirModalAreas(false);
         }}
-        areas={allowedAreas}                         // << usa a lista da safra (sem fetch)
-        excludeIds={selecionadas.map((a) => a.id)}   // << oculta as já escolhidas aqui
       />
 
       {/* Ações */}
@@ -332,7 +391,7 @@ export default function PlantiosPage() {
         </Button>
         <Button
           type="button"
-          onClick={handleFinalizar}
+          onClick={abrirConfirmacao}
           disabled={salvando}
           className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60"
         >
@@ -345,11 +404,12 @@ export default function PlantiosPage() {
         <div className="mt-6 rounded-md border p-3 text-sm text-gray-600">
           <h4 className="mb-2 font-medium">Plantios adicionados</h4>
           <ul className="space-y-2">
-            {draft!.plantios.map((p) => (
+            {draft!.plantios.map((p: any) => (
               <li key={p.id} className="flex items-center justify-between">
                 <span>
-                  Prod: {p.productId} — Var: {p.varietyId} — {p.inicio} → {p.fim} —{' '}
-                  {p.quantidadePlantadaKg ?? '—'} kg — Áreas: {p.areaIds.join(', ')}
+                  <strong>{p.name ?? 'Plantio'}</strong> — Prod: {p.productId} — Var: {p.varietyId}{' '}
+                  — {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg — Áreas:{' '}
+                  {p.areaIds.join(', ')}
                 </span>
                 <Button variant="outline" size="sm" onClick={() => removePlantio(p.id)}>
                   Remover
@@ -359,6 +419,45 @@ export default function PlantiosPage() {
           </ul>
         </div>
       )}
+
+      {/* MODAL CONFIRMAÇÃO */}
+      <Dialog open={showConfirm} onOpenChange={(o) => setShowConfirm(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar cadastro da safra</DialogTitle>
+            <DialogDescription>
+              Você está criando a safra <strong>{draft?.nome}</strong> ({draft?.inicio} →{' '}
+              {draft?.fim}). Revise os plantios abaixo antes de confirmar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[45vh] overflow-auto space-y-3 text-sm">
+            {plantingsPreview.length === 0 && <p>Nenhum plantio informado.</p>}
+            {plantingsPreview.map((p, i) => (
+              <div key={i} className="rounded border p-2">
+                <div className="font-medium">{p.name}</div>
+                <div>Produto: {productNameOf(p.productId)}</div>
+                <div>Variedade: {varietyNameOf(p.varietyId)}</div>
+                <div>Data de início: {p.plantingDate?? '—'}</div>
+                <div>Data Final: {p.expectedHarvestDate ?? '—'}</div>
+                <div>Quantidade: {p.quantityPlanted?.toLocaleString('pt-BR')} kg</div>
+                <div>
+                  Áreas: {p.areaIds.map((id) => areaNameMap.get(id) ?? `#${id}`).join(', ')}
+                </div>{' '}
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
+              Voltar
+            </Button>
+            <Button onClick={salvarAgora} className="flex-1 bg-green-600 hover:bg-green-700">
+              Confirmar e salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

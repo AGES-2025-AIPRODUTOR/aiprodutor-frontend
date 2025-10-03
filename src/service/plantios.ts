@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/service/plantios.ts
 import { api } from '@/lib/api';
 import { AxiosError } from 'axios';
 
-// Se já tem esses tipos/utils num arquivo compartilhado, pode reaproveitar.
+/** ---- Tipos utilitários p/ resposta ---- */
 export interface ResponseApi<T> {
   isSuccess: boolean;
   errorMessage?: string;
@@ -11,40 +10,59 @@ export interface ResponseApi<T> {
 }
 export function handleAxiosError(error: unknown): ResponseApi<never> {
   if (error instanceof AxiosError) {
-    const errorMessage = (error.response?.data as any)?.message;
-    return { isSuccess: false, errorMessage };
+    const msg =
+      (error.response?.data as any)?.message ??
+      (error.response?.data as any)?.error ??
+      error.message;
+    return { isSuccess: false, errorMessage: msg };
   }
-  return { isSuccess: false, errorMessage: 'Por favor, tente novamente mais tarde' };
+  return { isSuccess: false, errorMessage: 'Por favor, tente novamente mais tarde.' };
 }
 
-/** DTO vindo do back (ajuste campos se necessário) */
+/** Converte "YYYY-MM-DD" -> "YYYY-MM-DDT00:00:00Z" (se já vier ISO, devolve como está) */
+function toIsoZ(d?: string | null): string | null | undefined {
+  if (d == null) return d; // mantém null/undefined
+  // já é ISO com T?
+  if (/\dT\d/.test(d)) return d;
+  // espera "YYYY-MM-DD"
+  return `${d}T00:00:00Z`;
+}
+
+/* ===================== DTOs ===================== */
+
+/** Como o back devolve um Plantio (ajuste se necessário) */
 export type PlantioDTO = {
   id: number;
   name: string;
-  plantingDate: string; // ISO
-  expectedHarvestDate: string | null; // ISO | null
-  quantityPlanted: number | null;
+  plantingDate: string;              // ISO
+  plantingEndDate?: string | null;   // ISO | null
+  expectedHarvestDate?: string | null; // ISO | null
+  quantityPlanted?: number | null;
+  quantityHarvested?: number | null;
+  expectedYield?: number | null;
+  harvestId: number;
   productId?: number | null;
   varietyId?: number | null;
-  areas?: Array<{ id: number; name: string }>;
 };
 
+/** Corpo aceito no PATCH /api/v1/plantings/{id} */
 export type PlantioUpdate = {
-  // obrigatórios / esperados no PATCH do seu back:
-  harvestId: number; // <-- ADICIONE
-  areaId: number;
-
-  // campos editáveis
+  /** obrigatórios segundo o contrato novo */
   name: string;
-  plantingDate: string; // "YYYY-MM-DD"
-  expectedHarvestDate: string | null;
-  quantityPlanted: number;
+  plantingDate: string;                 // "YYYY-MM-DD" ou ISO
+  harvestId: number;
 
-  // campos que o back pode exigir mesmo sem mudar
-  productId?: number | null; // <-- ADICIONE
-  varietyId?: number | null; // <-- ADICIONE
-  quantityHarvested?: number | null; // <-- ADICIONE
+  /** opcionais (envie se tiver) */
+  plantingEndDate?: string | null;      // "YYYY-MM-DD" ou ISO
+  expectedHarvestDate?: string | null;  // "YYYY-MM-DD" ou ISO
+  quantityPlanted?: number | null;
+  quantityHarvested?: number | null;
+  productId?: number | null;
+  varietyId?: number | null;
+  expectedYield?: number | null;
 };
+
+/* ===================== API calls ===================== */
 
 /** GET /api/v1/plantings/{id} */
 export async function getPlantioById(id: number): Promise<ResponseApi<PlantioDTO>> {
@@ -56,30 +74,32 @@ export async function getPlantioById(id: number): Promise<ResponseApi<PlantioDTO
   }
 }
 
+/** PATCH /api/v1/plantings/{id} */
 export async function updatePlantio(
   id: number,
   payload: PlantioUpdate
 ): Promise<ResponseApi<void>> {
   try {
-    await api.patch(`/api/v1/plantings/${id}`, {
-      // garanta o shape que o back espera
-      harvestId: payload.harvestId,
-      areaId: payload.areaId,
+    const body = {
       name: payload.name,
+      plantingDate: toIsoZ(payload.plantingDate),
+      plantingEndDate: toIsoZ(payload.plantingEndDate ?? null),
+      expectedHarvestDate: toIsoZ(payload.expectedHarvestDate ?? null),
+      quantityPlanted: payload.quantityPlanted ?? null,
+      quantityHarvested: payload.quantityHarvested ?? null,
+      harvestId: payload.harvestId,
       productId: payload.productId ?? null,
       varietyId: payload.varietyId ?? null,
-      plantingDate: payload.plantingDate,
-      expectedHarvestDate: payload.expectedHarvestDate,
-      quantityPlanted: payload.quantityPlanted,
-      quantityHarvested: payload.quantityHarvested ?? null,
-    });
+      expectedYield: payload.expectedYield ?? null,
+    };
+    await api.patch(`/api/v1/plantings/${id}`, body);
     return { isSuccess: true };
   } catch (e) {
     return handleAxiosError(e);
   }
 }
 
-// aliases se quiser manter o naming antigo no resto do app
+/** aliases (se você usa os nomes “em português” em outros lugares) */
 export const getPlantingById = getPlantioById;
 export const updatePlanting = updatePlantio;
 export type PlantingUpdate = PlantioUpdate;

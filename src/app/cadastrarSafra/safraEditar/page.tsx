@@ -74,7 +74,7 @@ export default function EditarSafraPage() {
     };
 
     const { isSuccess, errorMessage } = await updateSafra(safraId, body);
-    if (isSuccess) router.back();
+    if (isSuccess)     router.push(`/controleSafra`);
     else alert(errorMessage || 'Falha ao salvar');
   };
 

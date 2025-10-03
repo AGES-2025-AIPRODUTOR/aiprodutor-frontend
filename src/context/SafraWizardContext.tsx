@@ -5,20 +5,19 @@ import type { AreasEntity } from '@/service/areas';
 
 export type DraftPlantio = {
   id: string;
-  inicio: string;                  // "YYYY-MM-DD"
-  fim: string;                     // "YYYY-MM-DD"
+  inicio: string;                  
+  fim: string;                     
   quantidadePlantadaKg: number | null;
   areaIds: number[];
-
-  // NEW
+  name?: string; 
   productId: number;
   varietyId: number;
 };
 
 export type DraftSafra = {
   nome: string;
-  inicio: string;       // "YYYY-MM-DD"
-  fim: string;          // "YYYY-MM-DD"
+  inicio: string;       
+  fim: string;          
   areas: AreasEntity[];
   plantios: DraftPlantio[];
 };
