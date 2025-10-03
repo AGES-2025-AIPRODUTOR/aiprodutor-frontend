@@ -1,162 +1,85 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/service/plantios.ts
 import { api } from '@/lib/api';
-import { handleAxiosError, ResponseApi } from '@/lib/response';
+import { AxiosError } from 'axios';
 
-/** Entities retornadas pelo GET da API */
-export interface PlantingArea {
-  id: number;
-  name: string;
-  areaM2?: string;
-  color?: string;
-  producerId: number;
-  soilTypeId?: number;
-  irrigationTypeId?: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+// Se já tem esses tipos/utils num arquivo compartilhado, pode reaproveitar.
+export interface ResponseApi<T> {
+  isSuccess: boolean;
+  errorMessage?: string;
+  response?: T;
+}
+export function handleAxiosError(error: unknown): ResponseApi<never> {
+  if (error instanceof AxiosError) {
+    const errorMessage = (error.response?.data as any)?.message;
+    return { isSuccess: false, errorMessage };
+  }
+  return { isSuccess: false, errorMessage: 'Por favor, tente novamente mais tarde' };
 }
 
-export interface ProductEntity {
+/** DTO vindo do back (ajuste campos se necessário) */
+export type PlantioDTO = {
   id: number;
   name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface VarietyEntity {
-  id: number;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  productId: number;
-}
-
-export interface PlantingEntity {
-  id: number;
-  harvestId: number;
-  name: string;
-
-  plantingDate: string;          // ISO: "YYYY-MM-DD" ou "YYYY-MM-DDTHH:mm:ssZ"
-  plantingEndDate?: string | null;
-  expectedHarvestDate?: string | null;
-
-  quantityPlanted: number;
-  quantityHarvested?: number | null;
-
-  productId: number;
-  varietyId: number;
-
-  createdAt: string;
-  updatedAt: string;
-
-  // campos “expand” que a API pode enviar:
-  areas?: PlantingArea[];
-  product?: ProductEntity;
-  variety?: VarietyEntity;
-}
-
-/** Payloads conforme Swagger */
-export type PlantingCreate = {
-  harvestId: number;
-  /** Swagger mostra `areaId` singular no POST */
-  areaId: number;
-  name: string;
-  productId: number;
-  varietyId: number;
-  plantingDate: string;            // "YYYY-MM-DD"
-  plantingEndDate?: string | null; // opcional
-  expectedHarvestDate?: string | null; // opcional
-  quantityPlanted: number;
-  quantityHarvested?: number | null;   // opcional
+  plantingDate: string; // ISO
+  expectedHarvestDate: string | null; // ISO | null
+  quantityPlanted: number | null;
+  productId?: number | null;
+  varietyId?: number | null;
+  areas?: Array<{ id: number; name: string }>;
 };
 
-export type PlantingUpdate = Partial<
-  Omit<PlantingCreate, 'harvestId'>
-> & { areaId?: number };
+export type PlantioUpdate = {
+  // obrigatórios / esperados no PATCH do seu back:
+  harvestId: number; // <-- ADICIONE
+  areaId: number;
 
-/* -----------------------------
- * Calls
- * ----------------------------*/
-const BASE = '/api/v1/plantings';
+  // campos editáveis
+  name: string;
+  plantingDate: string; // "YYYY-MM-DD"
+  expectedHarvestDate: string | null;
+  quantityPlanted: number;
 
-/** POST /api/v1/plantings */
-export async function createPlanting(
-  payload: PlantingCreate
-): Promise<ResponseApi<PlantingEntity>> {
-  try {
-    const { data } = await api.post<PlantingEntity>(BASE, payload);
-    return { isSuccess: true, response: data };
-  } catch (err) {
-    return handleAxiosError(err);
-  }
-}
-
-/** GET /api/v1/plantings */
-export async function getAllPlantings(): Promise<ResponseApi<PlantingEntity[]>> {
-  try {
-    const { data } = await api.get<PlantingEntity[]>(BASE);
-    return { isSuccess: true, response: data };
-  } catch (err) {
-    return handleAxiosError(err);
-  }
-}
-
-/** GET /api/v1/plantings/produto/{productId} */
-export async function getPlantingsByProduct(
-  productId: number
-): Promise<ResponseApi<PlantingEntity[]>> {
-  try {
-    const { data } = await api.get<PlantingEntity[]>(
-      `${BASE}/produto/${productId}`
-    );
-    return { isSuccess: true, response: data };
-  } catch (err) {
-    return handleAxiosError(err);
-  }
-}
+  // campos que o back pode exigir mesmo sem mudar
+  productId?: number | null; // <-- ADICIONE
+  varietyId?: number | null; // <-- ADICIONE
+  quantityHarvested?: number | null; // <-- ADICIONE
+};
 
 /** GET /api/v1/plantings/{id} */
-export async function getPlantingById(
-  id: number
-): Promise<ResponseApi<PlantingEntity>> {
+export async function getPlantioById(id: number): Promise<ResponseApi<PlantioDTO>> {
   try {
-    const { data } = await api.get<PlantingEntity>(`${BASE}/${id}`);
-    return { isSuccess: true, response: data };
-  } catch (err) {
-    return handleAxiosError(err);
+    const { data } = await api.get(`/api/v1/plantings/${id}`);
+    return { isSuccess: true, response: data as PlantioDTO };
+  } catch (e) {
+    return handleAxiosError(e);
   }
 }
 
-/** PATCH /api/v1/plantings/{id} */
-export async function updatePlanting(
+export async function updatePlantio(
   id: number,
-  payload: PlantingUpdate
-): Promise<ResponseApi<PlantingEntity>> {
-  try {
-    const { data } = await api.patch<PlantingEntity>(`${BASE}/${id}`, payload);
-    return { isSuccess: true, response: data };
-  } catch (err) {
-    return handleAxiosError(err);
-  }
-}
-
-/** DELETE /api/v1/plantings/{id} */
-export async function deletePlanting(
-  id: number
+  payload: PlantioUpdate
 ): Promise<ResponseApi<void>> {
   try {
-    await api.delete(`${BASE}/${id}`);
+    await api.patch(`/api/v1/plantings/${id}`, {
+      // garanta o shape que o back espera
+      harvestId: payload.harvestId,
+      areaId: payload.areaId,
+      name: payload.name,
+      productId: payload.productId ?? null,
+      varietyId: payload.varietyId ?? null,
+      plantingDate: payload.plantingDate,
+      expectedHarvestDate: payload.expectedHarvestDate,
+      quantityPlanted: payload.quantityPlanted,
+      quantityHarvested: payload.quantityHarvested ?? null,
+    });
     return { isSuccess: true };
-  } catch (err) {
-    return handleAxiosError(err);
+  } catch (e) {
+    return handleAxiosError(e);
   }
 }
 
-/* ------------------------------------
- * Compatibilidade com páginas existentes
- * (podes importar esses nomes se já estiverem no código)
- * ------------------------------------*/
-export const getPlantioById = getPlantingById;
-export const updatePlantio = updatePlanting;
-export type PlantioEntity = PlantingEntity;
-export type PlantioUpdate = PlantingUpdate;
-export type PlantioCreate = PlantingCreate;
+// aliases se quiser manter o naming antigo no resto do app
+export const getPlantingById = getPlantioById;
+export const updatePlanting = updatePlantio;
+export type PlantingUpdate = PlantioUpdate;

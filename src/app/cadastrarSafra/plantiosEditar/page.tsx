@@ -1,24 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/cadastrarSafra/plantiosEditar/page.tsx
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
+import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList'; // << mesmo modal do cadastro
 import { Input } from '@/components/ui/input';
-import type { AreasEntity } from '@/service/areas';
 
-// ↳ safra ainda vem do service de safras (para restringir áreas)
+import type { AreasEntity } from '@/service/areas';
 import { getSafraById } from '@/service/safras';
 
-// ↳ plantio agora vem do service real baseado no Swagger
-import {
-  getPlantioById, // alias de getPlantingById
-  updatePlantio, // alias de updatePlanting
-  type PlantioUpdate, // alias de PlantingUpdate
-} from '@/service/plantios';
+import { getPlantioById, updatePlantio, type PlantioUpdate } from '@/service/plantios';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
@@ -39,17 +36,19 @@ export default function EditarPlantioPage() {
   const sid = useMemo(() => {
     const q = search.get('safraId');
     const n = q ? Number(q) : NaN;
-    return Number.isFinite(n) ? n : 1; // fallback p/ mock local
+    return Number.isFinite(n) ? n : 1;
   }, [search]);
   const pid = useMemo(() => {
     const q = search.get('plantioId');
     const n = q ? Number(q) : NaN;
-    return Number.isFinite(n) ? n : 101; // fallback p/ mock local
+    return Number.isFinite(n) ? n : 101;
   }, [search]);
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-
+  const [origProductId, setOrigProductId] = useState<number | null>(null);
+  const [origVarietyId, setOrigVarietyId] = useState<number | null>(null);
+  const [origQuantityHarvested, setOrigQuantityHarvested] = useState<number | null>(null);
   const [inicio, setInicio] = useState(''); // plantingDate
   const [fim, setFim] = useState(''); // expectedHarvestDate
   const [produtoNome, setProdutoNome] = useState(''); // name
@@ -61,7 +60,9 @@ export default function EditarPlantioPage() {
   // carrega safra (para restringir áreas) + plantio
   useEffect(() => {
     let cancel = false;
-    Promise.all([getSafraById(sid), getPlantioById(pid)]).then(([safraRes, plantioRes]) => {
+
+    (async () => {
+      const [safraRes, plantioRes] = await Promise.all([getSafraById(sid), getPlantioById(pid)]);
       if (cancel) return;
 
       if (!safraRes.isSuccess || !safraRes.response) {
@@ -87,13 +88,19 @@ export default function EditarPlantioPage() {
           ? `${p.quantityPlanted} kg`
           : ''
       );
+      setOrigProductId(p.productId ?? null);
+      setOrigVarietyId(p.varietyId ?? null);
+      setOrigQuantityHarvested(
+        // se o DTO tiver, preserve; se não existir no back, pode deixar null
+        (p as any).quantityHarvested ?? null
+      );
 
-      // API retorna p.areas (objetos). Mapeamos para objetos da safra:
-      const idsSelecionadas = new Set((p.areas ?? []).map((a) => a.id));
-      setSelecionadas((s.areas || []).filter((a) => idsSelecionadas.has(a.id)));
+      // API retorna p.areas (objetos). Mantemos apenas as que pertencem à safra:
+      const idsSelecionadas = new Set((p.areas ?? []).map((a: { id: any }) => a.id));
+      setSelecionadas((s.areas || []).filter((a: AreasEntity) => idsSelecionadas.has(a.id)));
 
       setLoading(false);
-    });
+    })();
 
     return () => {
       cancel = true;
@@ -110,19 +117,27 @@ export default function EditarPlantioPage() {
   const onSalvar = async () => {
     if (!podeSalvar) return;
 
-    // ⚠️ Swagger usa areaId (singular). Se usuário escolher várias,
-    // enviamos APENAS a primeira.
     const body: PlantioUpdate = {
+      harvestId: sid, // <-- ADICIONE
+      areaId: selecionadas[0]?.id,
+
       name: produtoNome.trim(),
       plantingDate: inicio,
       expectedHarvestDate: fim || null,
       quantityPlanted: parseKg(qtdTxt) ?? 0,
-      areaId: selecionadas[0]?.id,
+
+      // preserve o que veio
+      productId: origProductId,
+      varietyId: origVarietyId,
+      quantityHarvested: origQuantityHarvested,
     };
 
     const { isSuccess, errorMessage } = await updatePlantio(pid, body);
-    if (isSuccess) router.push(`/cadastrarSafra/safraEditar?safraId=${sid}`);
-    else alert(errorMessage || 'Falha ao salvar');
+    if (isSuccess) {
+      router.push(`/cadastrarSafra/safraEditar?safraId=${sid}`);
+    } else {
+      alert(errorMessage || 'Falha ao salvar');
+    }
   };
 
   if (loading) return <main className="p-6">Carregando…</main>;
@@ -185,18 +200,20 @@ export default function EditarPlantioPage() {
         />
       </div>
 
-      {/* Modal para escolher áreas da safra */}
-      {abrirAreas && (
-        <PickAreasModal
-          allowed={allowedAreas}
-          already={selecionadas}
-          onClose={() => setAbrirAreas(false)}
-          onConfirm={(picked) => {
-            setSelecionadas(picked);
-            setAbrirAreas(false);
-          }}
-        />
-      )}
+      {/* Modal de áreas — mesmo do cadastro de safra */}
+      <AreaListModal
+        isOpen={abrirAreas}
+        onClose={() => setAbrirAreas(false)}
+        onConfirm={(picked) => {
+          // mantém somente áreas da safra (por segurança)
+          const allowed = new Set(allowedAreas.map((a) => a.id));
+          const filtradas = picked.filter((a) => allowed.has(a.id));
+          setSelecionadas(filtradas);
+          setAbrirAreas(false);
+        }}
+        areas={allowedAreas} // usa lista pronta (sem fetch)
+        excludeIds={[]} // no editar, mostramos todas as da safra
+      />
 
       {/* Ações */}
       <div className="mt-6 flex gap-3">
@@ -216,57 +233,5 @@ export default function EditarPlantioPage() {
         </Button>
       </div>
     </main>
-  );
-}
-
-/** Modal local para escolher subset de áreas da safra */
-function PickAreasModal({
-  allowed,
-  already,
-  onConfirm,
-  onClose,
-}: {
-  allowed: AreasEntity[];
-  already: AreasEntity[];
-  onConfirm: (a: AreasEntity[]) => void;
-  onClose: () => void;
-}) {
-  const [ids, setIds] = useState<Set<number>>(new Set(already.map((a) => a.id)));
-  const toggle = (id: number) =>
-    setIds((prev) => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg">
-        <h3 className="text-lg font-semibold">Selecione áreas da safra</h3>
-        <div className="mt-3 max-h-[50vh] space-y-2 overflow-y-auto">
-          {allowed.map((a) => (
-            <label key={a.id} className="flex items-center gap-2 rounded border p-2">
-              <input
-                type="checkbox"
-                checked={ids.has(a.id)}
-                onChange={() => toggle(a.id)}
-                className="h-4 w-4 accent-green-600"
-              />
-              <span className="truncate">{a.name}</span>
-            </label>
-          ))}
-        </div>
-        <div className="mt-4 flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            className="flex-1 bg-green-600 hover:bg-green-700"
-            onClick={() => onConfirm(allowed.filter((a) => ids.has(a.id)))}
-          >
-            Concluir
-          </Button>
-        </div>
-      </div>
-    </div>
   );
 }
