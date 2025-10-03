@@ -1,16 +1,10 @@
 services:
   web:
-    image: node:20
-    working_dir: /app
-    command: sh -c "mkdir -p /root/.npm/_cacache /root/.npm-global && npm ci && npm run dev"
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
-    environment:
-      - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
-      - NPM_CONFIG_CACHE=/root/.npm/_cacache
-      - NPM_CONFIG_PREFIX=/root/.npm-global
-      - CHOKIDAR_USEPOLLING=false
-    volumes:
-      - .:/app
-      - /app/node_modules
+    env_file:
+      - .env.local
+    
