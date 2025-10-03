@@ -3,29 +3,33 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Edit, Trash2 } from 'lucide-react';
-import { SafraEntity } from '@/service/safras';
+import type { SafraListItem } from '@/service/safras';
+import { formatISOToBR } from '@/lib/utils'; 
 
 interface SafraCardProps {
-  safra: SafraEntity;
+  safra: SafraListItem;
   onEdit: (safraId: number) => void;
   onDelete: (safraId: number) => void;
   onViewControl: (safraId: number) => void;
 }
+const formatYmd = formatISOToBR;
 
-export const SafraCard: React.FC<SafraCardProps> = ({ safra, onEdit, onDelete, onViewControl }) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
-
+export const SafraCard: React.FC<SafraCardProps> = ({
+  safra,
+  onEdit,
+  onDelete,
+  onViewControl,
+}) => {
   return (
+    
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
       <div className="flex justify-between items-start mb-3">
-        <h3 className="text-lg font-semibold text-gray-900">{safra.safraName}</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{safra.name}</h3>
+        
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onViewControl(safra.safraId)}
+          onClick={() => onViewControl(safra.id)}
           className="border-green-600 text-green-600 hover:bg-green-50 bg-white"
         >
           Ver Controle
@@ -35,15 +39,11 @@ export const SafraCard: React.FC<SafraCardProps> = ({ safra, onEdit, onDelete, o
       <div className="space-y-2 mb-4">
         <div className="flex items-center text-sm text-gray-600">
           <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-          <span>
-            <strong>Início:</strong> {formatDate(safra.safraInitialDate)}
-          </span>
+          <span><strong>Início:</strong> {formatYmd(safra.startDate)}</span>
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-          <span>
-            <strong>Fim:</strong> {formatDate(safra.safraEndDate)}
-          </span>
+          <span><strong>Fim:</strong> {formatYmd(safra.endDate)}</span>
         </div>
       </div>
 
@@ -51,7 +51,7 @@ export const SafraCard: React.FC<SafraCardProps> = ({ safra, onEdit, onDelete, o
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onEdit(safra.safraId)}
+          onClick={() => onEdit(safra.id)}
           className="flex-1 border-green-600 text-green-600 hover:bg-green-50 bg-white"
         >
           <Edit className="w-4 h-4 mr-2" />
@@ -60,7 +60,7 @@ export const SafraCard: React.FC<SafraCardProps> = ({ safra, onEdit, onDelete, o
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onDelete(safra.safraId)}
+          onClick={() => onDelete(safra.id)}
           className="flex-1 border-green-600 text-green-600 hover:bg-green-50 bg-white"
         >
           <Trash2 className="w-4 h-4 mr-2" />

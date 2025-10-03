@@ -2,9 +2,9 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ConfirmDialog } from './confirmDialog';
+import { ConfirmDialog } from '../../../components/ui/confirmDialog';
 import { AreasEntity, getAllIrrigationTypes, getAllSoilTypes } from '@/service/areas';
-import PolygonMini from '../PolygonMini';
+import PolygonMini from '../../../components/PolygonMini';
 
 type SelecionarAreaProps = {
   areas?: AreasEntity[];
@@ -33,14 +33,10 @@ export default function SelecionarArea({ areas = [], onChange, onAddClick }: Sel
       if (!alive) return;
 
       if (soilRes.isSuccess && soilRes.response) {
-        setSoilMap(
-          Object.fromEntries((soilRes.response as IdName[]).map((s) => [s.id, s.name]))
-        );
+        setSoilMap(Object.fromEntries((soilRes.response as IdName[]).map((s) => [s.id, s.name])));
       }
       if (irrRes.isSuccess && irrRes.response) {
-        setIrrMap(
-          Object.fromEntries((irrRes.response as IdName[]).map((i) => [i.id, i.name]))
-        );
+        setIrrMap(Object.fromEntries((irrRes.response as IdName[]).map((i) => [i.id, i.name])));
       }
     })();
     return () => {
@@ -57,17 +53,17 @@ export default function SelecionarArea({ areas = [], onChange, onAddClick }: Sel
   };
 
   const nomeAreaConfirm = useMemo(
-    () => (confirmExcluirId ? listaAreas.find((a) => a.id === confirmExcluirId)?.name ?? '' : ''),
+    () => (confirmExcluirId ? (listaAreas.find((a) => a.id === confirmExcluirId)?.name ?? '') : ''),
     [confirmExcluirId, listaAreas]
   );
 
   // helpers de exibição
   const soilNameOf = (area: AreasEntity) =>
-    area.soilTypeId ? soilMap[area.soilTypeId] ?? `ID ${area.soilTypeId}` : 'Não definido';
+    area.soilTypeId ? (soilMap[area.soilTypeId] ?? `ID ${area.soilTypeId}`) : 'Não definido';
 
   const irrNameOf = (area: AreasEntity) =>
     area.irrigationTypeId
-      ? irrMap[area.irrigationTypeId] ?? `ID ${area.irrigationTypeId}`
+      ? (irrMap[area.irrigationTypeId] ?? `ID ${area.irrigationTypeId}`)
       : 'Não definido';
 
   return (

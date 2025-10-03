@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sheet';
 import { Filter, X } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
-import Dropdown from '../gerenciamentoArea/CadastroArea/dropdown';
+import Dropdown from '../gerenciamentoArea/cadastroArea/dropdown';
 import {
   getAllHistory,
   HarvestHistoryFilters,

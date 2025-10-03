@@ -9,7 +9,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setTimeout(() => {
       redirect('/home', RedirectType.replace);
-    }, 100);
+    }, 1);
     return () => clearTimeout(timer);
   }, []);
 
