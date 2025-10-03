@@ -202,3 +202,24 @@ export async function deactivatePlantio(plantioId: number): Promise<ResponseApi<
     return handleAxiosError(error);
   }
 }
+export interface SafraEntity {
+  safraId: number;
+  safraName: string;
+  safraInitialDate: string;
+  safraEndDate: string;
+}
+
+export const getAllSafras = async (producerId: number): Promise<ResponseApi<SafraEntity[]>> => {
+  try {
+    const response = await api.get<SafraEntity[]>(`/api/v1/Harvests/${producerId}/in-progress`);
+
+    return {
+      isSuccess: true,
+      response: response.data,
+    };
+  } catch (error) {
+    console.error(error);
+    return handleAxiosError(error);
+  }
+};
+

@@ -53,7 +53,7 @@ export default function ControleSafra() {
   };
 
   const handleViewControl = (safraId: number) => {
-    router.push(`/cadastrarSafra/plantiosCadastro?safraId=${safraId}`);
+    router.push(`/controleSafra/controle/${safraId}`);
   };
 
   return (
