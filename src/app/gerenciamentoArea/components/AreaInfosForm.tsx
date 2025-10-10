@@ -29,6 +29,7 @@ interface EditAreaFormProps {
   soilTypeName?: string;
   irrigationTypeName?: string;
   refetch?: () => void;
+  onClose?: () => void;
 }
 
 export function EditAreaForm({
@@ -37,6 +38,7 @@ export function EditAreaForm({
   soilTypeName,
   irrigationTypeName,
   refetch,
+  onClose,
 }: EditAreaFormProps) {
   const { soilTypes, irrigationTypes } = useSoilAndIrrigationTypes();
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -73,6 +75,7 @@ export function EditAreaForm({
         if (pathname === '/gerenciamentoArea') {
           refetch?.();
           // opcional: router.refresh();
+          onClose?.();
         } else {
           router.push('/gerenciamentoArea');
         }
@@ -91,6 +94,7 @@ export function EditAreaForm({
       if (pathname === '/gerenciamentoArea') {
         refetch?.();
         // opcional: router.refresh();
+        onClose?.();
       } else {
         router.push('/gerenciamentoArea');
       }
