@@ -32,7 +32,7 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
   // ===== 1) Lê polygon/center/area/color do sessionStorage =====
   const [polygonLatLng, setPolygonLatLng] = useState<LatLng[] | null>(null);
   const [center, setCenter] = useState<LatLng | null>(null);
-  const [areaM2, setAreaM2] = useState<number >(0);
+  const [areaM2, setAreaM2] = useState<number>(0);
   const [color, setColor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
         soilTypeId,
         irrigationTypeId,
         areaM2: areaM2,
-        color: "#4CAF50",
+        color: '#4CAF50',
         polygon: {
           type: 'Polygon',
           coordinates: polygonCoordinates,
@@ -124,11 +124,7 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
 
       const result = await postArea(payload);
 
-      if (result.isSuccess) {
-        toast.success('Área cadastrada com sucesso! ✅');
-        console.log('Área criada:', result.response);
-        router.push('/gerenciamentoArea');
-      } else {
+      if (!result.isSuccess) {
         toast.error('Ocorreu Algum erro no cadastro da Área! ✅');
         console.log('Detalhes:', result);
       }
