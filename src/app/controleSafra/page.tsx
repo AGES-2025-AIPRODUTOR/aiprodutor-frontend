@@ -14,6 +14,7 @@ import { SafraCard } from './components/SafraCard';
 import { SafraCardSkeleton } from './components/SafraCardSkeleton';
 import { EmptyState } from './components/EmptyState';
 import { ErrorState } from './components/ErrorState';
+import { toast } from 'sonner';
 
 export default function ControleSafra() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function ControleSafra() {
     if (isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
     } else {
-      alert(errorMessage || 'Falha ao excluir a safra.');
+      toast.error(errorMessage || 'Falha ao excluir a safra.');
     }
   };
 

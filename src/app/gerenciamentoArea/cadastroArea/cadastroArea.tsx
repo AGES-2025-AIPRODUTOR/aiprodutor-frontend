@@ -83,11 +83,11 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
 
   const handleSubmit = async () => {
     if (!nomeArea.trim()) {
-      alert('Informe o nome da área');
+      toast.info('Informe o nome da área');
       return;
     }
     if (solo.selected === 'Selecione' || irrigacao.selected === 'Selecione') {
-      alert('Selecione o tipo de solo e de irrigação.');
+      toast.info('Selecione o tipo de solo e de irrigação.');
       return;
     }
 
@@ -95,13 +95,13 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
     const irrigationTypeId = irrigationTypes.find((i) => i.name === irrigacao.selected)?.id;
 
     if (!soilTypeId || !irrigationTypeId) {
-      alert('Não foi possível identificar os IDs de solo/irrigação.');
+      toast.error('Não foi possível identificar os IDs de solo/irrigação.');
       return;
     }
 
     const polygonCoordinates = toGeoJSONPolygon(polygonLatLng);
     if (!polygonCoordinates) {
-      alert('Desenho inválido ou ausente. Volte e desenhe a área no mapa.');
+      toast.warning('Desenho inválido ou ausente. Volte e desenhe a área no mapa.');
       return;
     }
 
@@ -125,13 +125,13 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
       const result = await postArea(payload);
 
       if (!result.isSuccess) {
-        toast.error('Ocorreu Algum erro no cadastro da Área! ✅');
+        toast.error('Ocorreu Algum erro no cadastro da Área!');
         console.log('Detalhes:', result);
       }
     } catch (err: any) {
       const data = err?.response?.data ?? err;
       console.error('Falha ao criar área:', data);
-      alert('Falha ao criar área. Veja o console para detalhes.');
+      toast.error('Falha ao criar área. Veja o console para detalhes.');
       onError?.(err);
     }
   };
