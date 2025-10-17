@@ -110,7 +110,7 @@ export default function FreeDrawMap({
       }
       return next;
     });
-  }, []);
+  }, [isDrawMode]);
 
   const projection = () => overlayRef.current?.getProjection();
 
@@ -371,7 +371,7 @@ export default function FreeDrawMap({
       {/* ⚠️ Div de captura fora do OverlayView: sempre cobre o mapa */}
       {isDrawMode && !confirmOpen && (
         <div
-          className="absolute top-0 left-0 right-0 z-10" // cobre apenas o mapa
+          className="absolute top-0 left-0 right-0 z-5" // cobre apenas o mapa
           style={{
             pointerEvents: 'auto',
             touchAction: 'none',
