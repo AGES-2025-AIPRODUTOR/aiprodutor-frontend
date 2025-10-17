@@ -1,29 +1,37 @@
 stages:
+  - build
   - deploy
 
-test_sync_to_github:
-  stage: deploy
+variables:
+  # ID do seu app no Amplify
+  AMPLIFY_APP_ID: "d2eoorv54u1tcl"
+  # Nome da branch que você quer que o deploy afete no Amplify.
+  AMPLIFY_BRANCH_NAME: "developer"
+
+build_frontend:
+  stage: build
+  image: node:20-alpine
+  tags:
+    - docker # Garante que vai usar o nosso runner na EC2
   script:
-    - echo "Branch de origem:${CI_COMMIT_REF_NAME}"
-    - git config --global user.email "pipeline@gitlab.com"
-    - git config --global user.name "GitLab Pipeline"
+    - echo "Instalando dependências..."
+    - npm install
+    - echo "Compilando o projeto frontend..."
+    - npm run build
+    - echo "Compactando os artefatos de build..."
+    - zip -r deploy.zip .next public package.json
+  artifacts:
+    paths:
+      - deploy.zip # Salva o arquivo deploy.zip para o próximo estágio
 
-    # Garante que não estamos em um clone superficial
-    - git fetch --unshallow || true
-
-    # Garante que estamos em uma branch local para o checkout
-    - git checkout -B "${CI_COMMIT_REF_NAME}"
-
-    # Configura o remote do GitHub
-    - git remote remove github || true
-
-    - git remote add github "https://${GITHUB_TOKEN}@github.com/AGES-2025-AIPRODUTOR/aiprodutor-frontend.git"
-
-    # Força o push para a branch 'developer'
-    - echo "Enviando de '${CI_COMMIT_REF_NAME}' para a branch 'developer' no GitHub..."
-    - git push github HEAD:developer -o ci.skip --force
-
-    - echo "TESTE DE SINCRONIZAÇÃO CONCLUÍDO!"
-    - echo "Verifique a branch 'developer' no GitHub para confirmar as alterações."
+deploy_to_amplify:
+  stage: deploy
+  image: amazon/aws-cli:latest
+  tags:
+    - docker
+  script:
+    - echo "Iniciando o deploy para o AWS Amplify..."
+    - aws amplify start-deployment --app-id $AMPLIFY_APP_ID --branch-name $AMPLIFY_BRANCH_NAME --source-url deploy.zip
+    - echo "Deploy enviado para o Amplify com sucesso."
   rules:
-    - if: '$CI_COMMIT_BRANCH == "developer"'
+    - if: '$CI_COMMIT_BRANCH == "developer" || $CI_COMMIT_BRANCH == "test/pipeline-amplify"'
