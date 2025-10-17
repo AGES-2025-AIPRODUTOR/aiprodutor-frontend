@@ -121,7 +121,7 @@ const Page = () => {
   });
 
   return (
-    <div className="min-h-screen bg-white p-2">
+    <div className="min-h-full bg-white p-2">
       <PageTitle title="Histórico de Safra" href="/" variant="center" />
 
       <div className="px-2 py-3 flex items-center gap-2">

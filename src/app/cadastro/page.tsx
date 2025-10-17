@@ -115,7 +115,7 @@ export default function Cadastro() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="h-screen sm:max-w-sm mx-auto bg-white">
+      <div className="h-full sm:max-w-sm mx-auto bg-white">
         <div className="p-4 flex items-center justify-between">
           <ChevronLeft
             size={30}
