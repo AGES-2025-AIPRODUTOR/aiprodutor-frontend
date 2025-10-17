@@ -17,11 +17,11 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={inter.className}>
-      <body>
+      <body className="h-screen">
         <ReactQueryProvider>
           <AgriculturalProducerProvider>
             <Header />
-            <main>{children}</main>
+            <main className="h-[calc(h-screen - 49px)]">{children}</main>
             <Toaster position="top-right" richColors />
           </AgriculturalProducerProvider>
         </ReactQueryProvider>

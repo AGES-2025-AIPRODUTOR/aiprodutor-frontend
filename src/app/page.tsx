@@ -14,7 +14,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex items-center justify-center h-screen w-screen bg-white">
+    <div className="flex items-center justify-center h-full w-screen bg-white">
       <Image
         src={LOGOS.aiProdutor}
         alt="AI Produtor"

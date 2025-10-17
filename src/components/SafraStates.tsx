@@ -74,7 +74,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ variant = 'filter' }) =>
 
 export const SafraDetailSkeleton: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-full bg-white">
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">

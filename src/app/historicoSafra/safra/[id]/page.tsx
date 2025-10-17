@@ -98,7 +98,7 @@ const SafraDetailPage = () => {
   const statusDisplay = mapStatusToDisplay(safra.status);
 
   return (
-    <div className="min-h-screen bg-white px-2">
+    <div className="min-h-full bg-white px-2">
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">

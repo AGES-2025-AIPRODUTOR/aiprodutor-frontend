@@ -4,7 +4,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from '@/components/ui/carousel';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+  type CarouselApi,
+} from '@/components/ui/carousel';
 import GoogleMapWrapper from '../GoogleMap';
 import { EditAreaForm } from '../AreaInfosForm';
 import {
@@ -262,7 +269,8 @@ export default function MapAreaViewer({
     });
 
     const b = pathsToBounds(allPaths);
-    if (!b.isEmpty()) mapRef.current.fitBounds(b, { top: 48, right: 48, bottom: bottomPadding, left: 48 });
+    if (!b.isEmpty())
+      mapRef.current.fitBounds(b, { top: 48, right: 48, bottom: bottomPadding, left: 48 });
   }
 
   const handleAreaClick = (area: AreasEntity) => {
@@ -287,7 +295,7 @@ export default function MapAreaViewer({
 
   if (loading && selectedAreaId) {
     return (
-      <div className="h-screen flex flex-col lg:flex-row">
+      <div className="h-full flex flex-col lg:flex-row">
         <div className="flex-1 relative">
           <GoogleMapWrapper center={defaultCenter} zoom={12} height="100%" />
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 lg:top-8">
@@ -304,7 +312,7 @@ export default function MapAreaViewer({
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row relative">
+    <div className="h-[calc(100vh-49px)] flex flex-col lg:flex-row relative">
       <div className="flex-1 relative">
         <GoogleMapWrapper
           center={center}
@@ -327,24 +335,29 @@ export default function MapAreaViewer({
 
         {/* Carrossel flutuante inferior para selecionar via nome (substitui lista lateral) */}
         {!selectedAreaId && !isDrawerVisible && (
-            <div ref={carouselWrapperRef} className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-30 w-[75%] max-w-4xl">
+          <div
+            ref={carouselWrapperRef}
+            className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-30 w-[75%] max-w-4xl"
+          >
             <div className="bg-white px-3 py-2 rounded-2xl shadow-2xl border border-gray-100 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-gray-600 font-semibold">Áreas Disponíveis</p>
               </div>
-                <Carousel className="relative" setApi={(api) => setCarouselApi(api)}>
+              <Carousel className="relative" setApi={(api) => setCarouselApi(api)}>
                 <CarouselContent>
                   {areas.map((area) => (
                     <CarouselItem key={area.id} className="pr-2">
                       <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{area.name || `Área ${area.id}`}</p>
+                          <p className="text-sm font-medium text-gray-800 truncate">
+                            {area.name || `Área ${area.id}`}
+                          </p>
                         </div>
                         <div className="flex-shrink-0">
                           <Button
                             size="sm"
                             variant="default"
-                            className='bg-green-600'
+                            className="bg-green-600"
                             onClick={() => handleAreaClick(area)}
                           >
                             Editar
@@ -372,7 +385,7 @@ export default function MapAreaViewer({
             ${isDrawerVisible ? 'transform translate-y-0' : 'transform translate-y-full'}
             lg:relative lg:translate-y-0 lg:w-96 lg:rounded-none lg:border-l lg:border-gray-200
           `}
-            ref={drawerRef}
+          ref={drawerRef}
         >
           <EditAreaForm
             areaId={selectedAreaId || selectedArea?.id || 0}
