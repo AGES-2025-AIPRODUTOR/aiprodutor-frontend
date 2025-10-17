@@ -40,7 +40,7 @@ export function EditAreaForm({
   refetch,
   onClose,
 }: EditAreaFormProps) {
-  const { soilTypes, irrigationTypes } = useSoilAndIrrigationTypes();
+  const { soilTypes, irrigationTypes, loading } = useSoilAndIrrigationTypes();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -55,10 +55,12 @@ export function EditAreaForm({
   });
 
   useEffect(() => {
-    if (areaName) form.setValue('areaName', areaName);
-    if (soilTypeName) form.setValue('soilType', soilTypeName);
-    if (irrigationTypeName) form.setValue('irrigationType', irrigationTypeName);
-  }, [areaName, soilTypeName, irrigationTypeName, form]);
+    if (!loading && soilTypes.length > 0 && irrigationTypes.length > 0) {
+      if (areaName) form.setValue('areaName', areaName);
+      if (soilTypeName) form.setValue('soilType', soilTypeName);
+      if (irrigationTypeName) form.setValue('irrigationType', irrigationTypeName);
+    }
+  }, [areaName, soilTypeName, irrigationTypeName, form, loading, soilTypes.length, irrigationTypes.length]);
 
   async function onSubmit(data: FormValues) {
     setIsLoading(true);
@@ -123,9 +125,9 @@ export function EditAreaForm({
                 <FormItem>
                   <Label className="text-mg font-bold mb-3 text-gray-700 block">Tipo de solo:</Label>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={loading}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo de solo" />
+                        <SelectValue placeholder={loading ? "Carregando..." : "Selecione o tipo de solo"} />
                       </SelectTrigger>
                       <SelectContent>
                         {soilTypes.map((type) => (
@@ -148,9 +150,9 @@ export function EditAreaForm({
                 <FormItem>
                   <Label className="text-mg font-bold mb-4 text-gray-700 block">Tipo de irrigação:</Label>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={loading}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo de irrigação" />
+                        <SelectValue placeholder={loading ? "Carregando..." : "Selecione o tipo de irrigação"} />
                       </SelectTrigger>
                       <SelectContent>
                         {irrigationTypes.map((type) => (

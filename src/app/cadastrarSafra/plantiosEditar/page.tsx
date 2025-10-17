@@ -2,7 +2,7 @@
 // app/cadastrarSafra/plantiosEditar/page.tsx
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import PageTitle from '@/components/PageTitle';
@@ -28,7 +28,7 @@ function parseKg(value: string): number | null {
   return Number.isFinite(v) ? v : null;
 }
 
-export default function EditarPlantioPage() {
+function EditarPlantioContent() {
   const router = useRouter();
 
   // /cadastrarSafra/plantiosEditar?safraId=1&plantioId=101
@@ -282,5 +282,13 @@ export default function EditarPlantioPage() {
         </Button>
       </div>
     </main>
+  );
+}
+
+export default function EditarPlantioPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <EditarPlantioContent />
+    </Suspense>
   );
 }

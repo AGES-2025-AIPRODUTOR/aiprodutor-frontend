@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -7,7 +8,7 @@ import { getAllAreas } from '@/service/areas';
 import MapAreaViewer from '../../components/MapAreaViewer';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 
-export default function EditArea() {
+function EditAreaContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -38,5 +39,13 @@ export default function EditArea() {
       onBack={handleBack}
       refetch={refetch}
     />
+  );
+}
+
+export default function EditArea() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <EditAreaContent />
+    </Suspense>
   );
 }

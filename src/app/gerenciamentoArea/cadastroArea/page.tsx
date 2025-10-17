@@ -10,7 +10,7 @@ const CoreAreaForm = dynamic<CadastroAreaProps>(() => import('./cadastroArea'), 
   loading: () => <Skeleton />,
 });
 
-export default function CadastroAreaWrapper(props: CadastroAreaProps) {
+export default function CadastroAreaWrapper() {
   const [err, setErr] = useState<Error | null>(null);
   const [nonce, setNonce] = useState(0); // força remontagem no retry
 
@@ -26,5 +26,5 @@ export default function CadastroAreaWrapper(props: CadastroAreaProps) {
     );
   }
 
-  return <CoreAreaForm key={nonce} {...props} onError={setErr} />;
+  return <CoreAreaForm key={nonce} onError={setErr} />;
 }

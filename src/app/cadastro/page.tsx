@@ -59,8 +59,11 @@ export default function Cadastro() {
 
   useEffect(() => {
     if (data.name) {
-      Object.entries(data).forEach(([key, value]) => {
-        setValue(key as keyof Inputs, value);
+      (Object.keys(data) as Array<keyof typeof data>).forEach((key) => {
+        const value = data[key];
+        if (value !== undefined && value !== null && key in data) {
+          setValue(key as keyof Inputs, String(value));
+        }
       });
       setSubmetido(true);
     }
