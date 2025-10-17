@@ -1,7 +1,7 @@
 // app/cadastrarSafra/safraEditar/page.tsx
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -15,7 +15,7 @@ import type { AreasEntity } from '@/service/areas';
 
 import { getSafraById, updateSafra, deactivatePlantio, type PlantioEntity } from '@/service/safras';
 
-export default function EditarSafraPage() {
+function EditarSafraContent() {
   const router = useRouter();
 
   // ⚠️ Rota com query string: /cadastrarSafra/safraEditar?safraId=1
@@ -187,5 +187,13 @@ export default function EditarSafraPage() {
         onConfirm={onConfirmAreas}
       />
     </main>
+  );
+}
+
+export default function EditarSafraPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <EditarSafraContent />
+    </Suspense>
   );
 }

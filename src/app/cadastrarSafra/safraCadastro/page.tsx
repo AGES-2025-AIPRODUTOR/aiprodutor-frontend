@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import PageTitle from '@/components/PageTitle';
@@ -12,7 +12,7 @@ import type { AreasEntity } from '@/service/areas';
 import SafraSteps from '@/app/cadastrarSafra/components/SafraSteps';
 import { useSafraWizard } from '@/context/SafraWizardContext';
 
-export default function CadastrarSafraPage() {
+function CadastrarSafraContent() {
   const router = useRouter();
   const search = useSearchParams();
   const { setBase, setAreas } = useSafraWizard();
@@ -144,5 +144,13 @@ export default function CadastrarSafraPage() {
         excludeIds={excludeIds}
       />
     </main>
+  );
+}
+
+export default function CadastrarSafraPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <CadastrarSafraContent />
+    </Suspense>
   );
 }

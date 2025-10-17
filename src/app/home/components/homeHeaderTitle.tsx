@@ -11,7 +11,7 @@ export default function HomeHeaderTitle() {
           Bem-vindo(a)
         </h1>
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-center text-green-600">{data.nome}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-center text-green-600">{data.name}</h1>
       </div>
       <h2 className="text-sm sm:text-md text-center opacity-50 font-medium">
         Gerencie sua produção de forma inteligente
