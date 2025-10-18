@@ -10,11 +10,15 @@ export interface Area {
 
 export interface Planting {
   id: number;
+  plantingName: string;
   initialDate: string;
   estimatedEndDate: string | null;
   qtyEstimated: string;
   areaName: string[];
 }
+
+// Alias para compatibilidade
+export type PlantingItem = Planting;
 
 export interface HarvestHistoryItem {
   safraId: number;
@@ -25,6 +29,9 @@ export interface HarvestHistoryItem {
   status: StatusType;
   planting: Planting[];
 }
+
+// Alias para compatibilidade
+export type HistoryEntity = HarvestHistoryItem;
 
 export interface HarvestHistoryFilters {
   status?: string;
