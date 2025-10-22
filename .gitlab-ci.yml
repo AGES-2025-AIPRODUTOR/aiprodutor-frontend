@@ -13,32 +13,32 @@ build_frontend:
     - echo "Compilando o projeto (verificando se não há erros)..."
     - npx next build --no-lint
 
-
 sync_to_github:
   stage: deploy
   image: node:20-alpine
   tags:
     - docker
+  
+  before_script:
+    - echo "Instalando o Git..."
+    - apk update && apk add git
+  # ------------------
+
   script:
     - echo "Branch de origem:${CI_COMMIT_REF_NAME}"
     - git config --global user.email "pipeline@gitlab.com"
     - git config --global user.name "GitLab Pipeline"
     
-    # Garante que não estamos em um clone superficial
     - git fetch --unshallow || true
     
-    # Garante que estamos em uma branch local para o checkout
     - git checkout -B "${CI_COMMIT_REF_NAME}"
     
-    # Configura o remote do GitHub
     - git remote remove github || true
     - git remote add github "https://AGES-2025-AIPRODUTOR:${GITHUB_TOKEN}@github.com/AGES-2025-AIPRODUTOR/aiprodutor-frontend.git"
     
-    # Força o push para a branch 'developer'
     - echo "Enviando de '${CI_COMMIT_REF_NAME}' para a branch 'developer' no GitHub..."
     - git push github HEAD:developer -o ci.skip --force
     
     - echo "SINCRONIZAÇÃO COM GITHUB CONCLUÍDA!"
   rules:
-    # Esta regra garante que este job SÓ rode na branch 'developer'
     - if: '$CI_COMMIT_BRANCH == "developer"'
