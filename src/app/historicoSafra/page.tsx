@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,6 @@ import Dropdown from '../gerenciamentoArea/cadastroArea/dropdown';
 import {
   getAllHistory,
   HarvestHistoryFilters,
-  formatDateToBrazilian,
   mapStatusToDisplay,
 } from '@/service/history';
 import { useQuery } from '@tanstack/react-query';
@@ -31,13 +31,8 @@ function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
   }, [value, delay]);
 
   return debouncedValue;
@@ -56,7 +51,6 @@ const Page = () => {
   const [appliedFilters, setAppliedFilters] = useState<HarvestHistoryFilters>({});
 
   const { data } = useAgriculturalProducerContext();
-
   const debouncedSearchValue = useDebounce(searchValue, 500);
 
   const handleDetailsClick = (safraId: number) => {
@@ -68,7 +62,6 @@ const Page = () => {
     if (appliedFilters.status) count++;
     if (appliedFilters.safraInitialDate) count++;
     if (appliedFilters.safraEndDate) count++;
-    // Não conta a busca como filtro
     return count;
   };
 
@@ -78,9 +71,9 @@ const Page = () => {
     const filters = [];
     if (appliedFilters.status) {
       const statusMap: Record<string, string> = {
-        concluida: 'Concluído',
-        ativa: 'Em Andamento',
-        pausada: 'Desativado',
+        completed: 'Concluído',
+        in_progress: 'Em Andamento',
+        cancelled: 'Desativado',
       };
       filters.push({
         label: 'Status',
@@ -104,11 +97,7 @@ const Page = () => {
 
   const activeFilters = getActiveFiltersDisplay();
 
-  const {
-    data: response,
-    isError,
-    isLoading,
-  } = useQuery({
+  const { data: response, isError, isLoading } = useQuery({
     queryKey: ['history', data.id, appliedFilters, debouncedSearchValue],
     queryFn: () => {
       const filters = {
@@ -124,6 +113,7 @@ const Page = () => {
     <div className="min-h-full bg-white p-2">
       <PageTitle title="Histórico de Safra" href="/" variant="center" />
 
+      {/* Campo de busca e botão de filtros */}
       <div className="px-2 py-3 flex items-center gap-2">
         <Input
           placeholder="Pesquisar por nome da safra"
@@ -148,22 +138,25 @@ const Page = () => {
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[50vh] pb-24 rounded-t-3xl">
+
+          <SheetContent side="bottom" className="h-[50vh] pb-24 rounded-t-3xl relative">
             <SheetHeader className="pb-6">
               <SheetTitle>Filtros</SheetTitle>
               <SheetDescription>Configure os filtros para refinar sua pesquisa</SheetDescription>
             </SheetHeader>
 
-            <div className="space-y-6">
+            <div className="space-y-6 overflow-y-auto pb-28">
+              {/* STATUS */}
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Dropdown
-                  options={['Todos', 'Concluído', 'Em Andamento']}
+                  options={['Todos', 'Concluído', 'Em Andamento', 'Desativado']}
                   value={statusFilter}
                   onChange={setStatusFilter}
                 />
               </div>
 
+              {/* DATA INICIAL */}
               <div className="space-y-2">
                 <Label htmlFor="safra-initial-date">Data Inicial da Safra</Label>
                 <Input
@@ -176,6 +169,7 @@ const Page = () => {
                 />
               </div>
 
+              {/* DATA FINAL */}
               <div className="space-y-2">
                 <Label htmlFor="safra-end-date">Data Final da Safra</Label>
                 <Input
@@ -187,57 +181,52 @@ const Page = () => {
                   className="text-gray-400"
                 />
               </div>
+            </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setStatusFilter({ selected: '', open: false });
-                    setSafraInitialDate('');
-                    setSafraEndDate('');
-                    setAppliedFilters({});
-                  }}
-                >
-                  Limpar
-                </Button>
-                <Button
-                  className="flex-1"
-                  style={{ backgroundColor: '#38A068' }}
-                  onClick={() => {
-                    const filters: HarvestHistoryFilters = {};
+            {/* BOTÕES FIXOS */}
+            <div className="flex gap-2 fixed md:static bottom-0 left-0 w-full bg-white p-4 md:p-0 border-t md:border-0 border-gray-200">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setStatusFilter({ selected: '', open: false });
+                  setSafraInitialDate('');
+                  setSafraEndDate('');
+                  setAppliedFilters({});
+                }}
+              >
+                Limpar
+              </Button>
+              <Button
+                className="flex-1"
+                style={{ backgroundColor: '#38A068' }}
+                onClick={() => {
+                  const filters: HarvestHistoryFilters = {};
 
-                    // Map frontend status to backend status
-                    if (statusFilter.selected && statusFilter.selected !== 'Todos') {
-                      const statusMap: Record<string, string> = {
-                        Concluído: 'concluida',
-                        'Em Andamento': 'ativa',
-                        Desativado: 'pausada',
-                      };
-                      filters.status = statusMap[statusFilter.selected];
-                    }
+                  if (statusFilter.selected && statusFilter.selected !== 'Todos') {
+                    const statusMap: Record<string, string> = {
+                      Concluído: 'completed',
+                      'Em Andamento': 'in_progress',
+                      Desativado: 'cancelled',
+                    };
+                    filters.status = statusMap[statusFilter.selected];
+                  }
 
-                    if (safraInitialDate) {
-                      filters.safraInitialDate = safraInitialDate;
-                    }
+                  if (safraInitialDate) filters.safraInitialDate = safraInitialDate;
+                  if (safraEndDate) filters.safraEndDate = safraEndDate;
 
-                    if (safraEndDate) {
-                      filters.safraEndDate = safraEndDate;
-                    }
-
-                    setAppliedFilters(filters);
-                    setIsSheetOpen(false);
-                  }}
-                >
-                  Aplicar
-                </Button>
-              </div>
+                  setAppliedFilters(filters);
+                  setIsSheetOpen(false);
+                }}
+              >
+                Aplicar
+              </Button>
             </div>
           </SheetContent>
         </Sheet>
       </div>
 
-      {/* Área de filtros ativos */}
+      {/* FILTROS APLICADOS */}
       {activeFilters.length > 0 && (
         <div className="px-2 pb-3">
           <div className="flex flex-wrap gap-2">
@@ -291,33 +280,27 @@ const Page = () => {
         </div>
       )}
 
+      {/* LISTAGEM */}
       <div className="px-2 space-y-3">
         {isLoading ? (
           <LoadingSkeleton count={3} />
         ) : isError ? (
           <ErrorMessage />
         ) : response?.isSuccess && response.response ? (
-          (() => {
-            if (response.response.length === 0) {
-              return <EmptyState variant="filter" />;
-            }
-
-            return response.response.map((item) => {
-              const statusDisplay = mapStatusToDisplay(item.status);
-              return (
-                <HistoricoSafraCard
-                  key={item.safraId}
-                  id={item.safraId}
-                  name={item.safraName}
-                  plantingDate={formatDateToBrazilian(item.safraInitialDate)}
-                  harvestDate={formatDateToBrazilian(item.safraEndDate)}
-                  status={statusDisplay as StatusType}
-                  areaName={item.areas.map((area) => area.name).join(', ')}
-                  onDetailsClick={handleDetailsClick}
-                />
-              );
-            });
-          })()
+          response.response.length === 0 ? (
+            <EmptyState variant="filter" />
+          ) : (
+            response.response.map((item) => (
+              <HistoricoSafraCard
+                key={item.safraId}
+                safra={{
+                  ...item,
+                  status: mapStatusToDisplay(item.status) as StatusType,
+                }}
+                onDetailsClick={handleDetailsClick}
+              />
+            ))
+          )
         ) : (
           <EmptyState variant="filter" />
         )}
