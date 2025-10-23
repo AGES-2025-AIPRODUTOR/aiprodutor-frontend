@@ -20,12 +20,16 @@ import {
   getAllHistory,
   HarvestHistoryFilters,
   mapStatusToDisplay,
+  HarvestHistoryItem,
 } from '@/service/history';
 import { useQuery } from '@tanstack/react-query';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import { HistoricoSafraCard } from './components/historyCard';
-import { StatusType } from './components/statusBadge';
 import { LoadingSkeleton, ErrorMessage, EmptyState } from '@/components/SafraStates';
+
+type HarvestHistoryDisplayItem = Omit<HarvestHistoryItem, 'status'> & {
+  status: string;
+};
 
 function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -97,7 +101,11 @@ const Page = () => {
 
   const activeFilters = getActiveFiltersDisplay();
 
-  const { data: response, isError, isLoading } = useQuery({
+  const {
+    data: response,
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: ['history', data.id, appliedFilters, debouncedSearchValue],
     queryFn: () => {
       const filters = {
@@ -293,10 +301,12 @@ const Page = () => {
             response.response.map((item) => (
               <HistoricoSafraCard
                 key={item.safraId}
-                safra={{
-                  ...item,
-                  status: mapStatusToDisplay(item.status) as StatusType,
-                }}
+                safra={
+                  {
+                    ...item,
+                    status: mapStatusToDisplay(item.status),
+                  } as HarvestHistoryDisplayItem
+                }
                 onDetailsClick={handleDetailsClick}
               />
             ))
