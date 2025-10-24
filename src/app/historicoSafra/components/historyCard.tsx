@@ -1,103 +1,103 @@
-import { Calendar, Scaling } from 'lucide-react';
-import { StatusBadge, StatusType } from './statusBadge';
+import React, { useState } from 'react';
+import { Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { StatusBadge } from './statusBadge';
+import { HistoryEntity, PlantingItem } from '@/service/history';
+
+type HistoryEntityDisplay = Omit<HistoryEntity, 'status'> & {
+  status: string;
+};
+
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return 'Não definida';
+
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const calculateTotalQty = (planting: PlantingItem[]): string => {
+  if (!planting || planting.length === 0) return '0kg';
+
+  let totalKg = 0;
+
+  planting.forEach((item) => {
+    const match = item.qtyEstimated.match(/(\d+(?:\.\d+)?)/);
+    if (match) {
+      totalKg += parseFloat(match[1]);
+    }
+  });
+
+  return `${totalKg}kg`;
+};
 
 export const HistoricoSafraCard: React.FC<{
-  id: number;
-  name: string;
-  plantingDate: string;
-  harvestDate: string;
-  status: StatusType;
-  areaName: string;
+  safra: HistoryEntityDisplay;
   onDetailsClick?: (id: number) => void;
-}> = ({ id, name, plantingDate, harvestDate, status, areaName, onDetailsClick }) => {
-  const formatAreaText = (areaText: string) => {
-    const areas = areaText.split(', ');
-    if (areas.length <= 2) return areaText;
-    if (areas.length <= 3) {
-      return areas.join(', ');
-    }
+}> = ({ safra, onDetailsClick }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const totalQty = calculateTotalQty(safra.planting || []);
 
-    const firstTwo = areas.slice(0, 2).join(', ');
-    return `${firstTwo} e mais ${areas.length - 2} área(s)`;
-  };
-
-  const formatAreaDisplay = (areaText: string) => {
-    const areas = areaText.split(', ');
-    return {
-      short: formatAreaText(areaText),
-      hasMore: areas.length > 3,
-      allAreas: areas,
-    };
-  };
-
-  const areaDisplay = formatAreaDisplay(areaName);
-
-  const fields = [
-    { label: 'Início', value: plantingDate, Icon: Calendar, type: 'normal' },
-    { label: 'Fim', value: harvestDate, Icon: Calendar, type: 'normal' },
-    {
-      label: 'Área',
-      value: areaDisplay.short,
-      Icon: Scaling,
-      type: 'area',
-      fullValue: areaDisplay,
-    },
-  ];
+  const startDate = formatDate(safra.safraInitialDate);
+  const endDate = safra.safraEndDate ? formatDate(safra.safraEndDate) : 'Em andamento';
+  const dateRange = `${startDate} – ${endDate}`;
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="font-semibold" style={{ fontSize: '16px' }}>
-          {name}
-        </h2>
-        <StatusBadge status={status} />
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="font-semibold text-base">{safra.safraName}</h2>
+        <StatusBadge status={safra.status} />
       </div>
 
-      <div className="space-y-2 text-gray-600" style={{ fontSize: '14px' }}>
-        {fields.map((field) => {
-          const { Icon } = field;
+      <div className="flex items-center gap-2 text-gray-600 text-sm mb-3">
+        <Calendar size={14} className="text-gray-500" />
+        <span className="font-medium">Período:</span>
+        <span>{dateRange}</span>
+      </div>
 
-          if (field.type === 'area' && field.fullValue?.hasMore) {
-            return (
-              <div key={field.label} className="space-y-1">
-                <div className="flex items-start gap-1">
-                  <Icon size={14} className="text-gray-500 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <span className="font-medium">{field.label}:</span>
-                    <span className="ml-1 break-words">{field.value}</span>
-                  </div>
-                </div>
-                <details className="ml-4 text-xs text-gray-500">
-                  <summary className="cursor-pointer hover:text-gray-700 select-none py-1">
-                    Ver todas as áreas ({field.fullValue.allAreas.length})
-                  </summary>
-                  <div className="mt-1 pl-3 border-l-2 border-green-200 bg-gray-50 rounded-r p-2 space-y-0.5">
-                    {field.fullValue.allAreas.map((area: string, areaIndex: number) => (
-                      <div key={areaIndex} className="text-gray-700 text-sm">
-                        <span className="font-medium text-green-600">{areaIndex + 1}.</span>{' '}
-                        {area.trim()}
-                      </div>
-                    ))}
-                  </div>
-                </details>
+      <div className="mb-4">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-800">Quantidade Total Esperada:</span>
+            <span className="text-base font-bold text-gray-800">{totalQty}</span>
+          </div>
+          {isExpanded ? (
+            <ChevronUp size={18} className="text-gray-500" />
+          ) : (
+            <ChevronDown size={18} className="text-gray-500" />
+          )}
+        </button>
+
+        {isExpanded && safra.planting && safra.planting.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {safra.planting.map((planting) => (
+              <div
+                key={planting.id}
+                className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200"
+              >
+                <span className="text-sm font-medium text-gray-800">{planting.plantingName}</span>
+                <span className="text-sm font-semibold text-gray-800">{planting.qtyEstimated}</span>
               </div>
-            );
-          }
+            ))}
+          </div>
+        )}
 
-          return (
-            <div key={field.label} className="flex items-center gap-1">
-              <Icon size={14} className="text-gray-500" />
-              <span className="font-medium">{field.label}:</span> <span>{field.value}</span>
-            </div>
-          );
-        })}
+        {isExpanded && (!safra.planting || safra.planting.length === 0) && (
+          <div className="mt-2 text-center text-sm text-gray-500 py-2">
+            Nenhuma cultura cadastrada
+          </div>
+        )}
       </div>
 
       <div className="mt-4">
         <button
-          onClick={() => onDetailsClick?.(id)}
-          className="w-full py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: '#38A068', fontSize: '14px' }}
+          onClick={() => onDetailsClick?.(safra.safraId)}
+          className="w-full py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity text-sm"
+          style={{ backgroundColor: '#38A068' }}
         >
           Detalhes
         </button>
