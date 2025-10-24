@@ -13,6 +13,7 @@ build_frontend:
     - echo "Compilando o projeto (verificando se não há erros)..."
     - npx next build --no-lint
 
+
 sync_to_github:
   stage: deploy
   image: node:20-alpine
@@ -22,7 +23,6 @@ sync_to_github:
   before_script:
     - echo "Instalando o Git..."
     - apk update && apk add git
-  # ------------------
 
   script:
     - echo "Branch de origem:${CI_COMMIT_REF_NAME}"
@@ -36,9 +36,11 @@ sync_to_github:
     - git remote remove github || true
     - git remote add github "https://AGES-2025-AIPRODUTOR:${GITHUB_TOKEN}@github.com/AGES-2025-AIPRODUTOR/aiprodutor-frontend.git"
     
-    - echo "Enviando de '${CI_COMMIT_REF_NAME}' para a branch 'developer' no GitHub..."
-    - git push github HEAD:developer -o ci.skip --force
+    - echo "Enviando de '${CI_COMMIT_REF_NAME}' para a branch '${CI_COMMIT_REF_NAME}' no GitHub..."
+    - git push github HEAD:${CI_COMMIT_REF_NAME} -o ci.skip --force
+    # ----------------------
     
     - echo "SINCRONIZAÇÃO COM GITHUB CONCLUÍDA!"
   rules:
-    - if: '$CI_COMMIT_BRANCH == "developer"'
+    - if: '$CI_COMMIT_BRANCH == "developer" || $CI_COMMIT_BRANCH == "main"'
+    # ----------------------
