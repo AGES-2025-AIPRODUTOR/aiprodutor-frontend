@@ -5,12 +5,12 @@ import HomeHeaderTitle from './components/homeHeaderTitle';
 export default function Home() {
   const itemIconSizing = 'w-8 h-8 sm:w-10 sm:h-10';
   const homeItems = [
-    {
-      title: 'Meu Cadastro',
-      subtitle: 'Gerencie seus dados pessoais',
-      icon: <UserRound className={itemIconSizing} />,
-      linkTo: '/cadastro',
-    },
+    // {
+    //   title: 'Meu Cadastro',
+    //   subtitle: 'Gerencie seus dados pessoais',
+    //   icon: <UserRound className={itemIconSizing} />,
+    //   linkTo: '/cadastro',
+    // },
     {
       title: 'Controle de Safra',
       subtitle: 'Monitore áreas ativas',
