@@ -1,4 +1,4 @@
-import { ChartArea, FileText, History, MapPin, TreeDeciduous, UserRound } from 'lucide-react';
+import { ChartArea, FileText, History, MapPin, TreeDeciduous } from 'lucide-react';
 import HomeCard from './components/homeCard';
 import HomeHeaderTitle from './components/homeHeaderTitle';
 
