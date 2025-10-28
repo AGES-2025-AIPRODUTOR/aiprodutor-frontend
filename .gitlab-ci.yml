@@ -7,11 +7,15 @@ build_frontend:
   image: node:20-alpine
   tags:
     - docker
+
+  variables:
+    AWS_REGION: "us-east-2"
+
   script:
-    - echo "Instalando dependências..."
-    - npm install
-    - echo "Compilando o projeto (verificando se não há erros)..."
-    - npx next build --no-lint
+      - echo "Instalando dependências..."
+      - npm install
+      - echo "Compilando o projeto..."
+      - npx next build
 
 
 sync_to_github:
