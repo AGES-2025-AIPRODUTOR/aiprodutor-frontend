@@ -14,6 +14,7 @@ import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList';
 import type { AreasEntity } from '@/service/areas';
 
 import { getSafraById, updateSafra, deactivatePlantio, type PlantioEntity } from '@/service/safras';
+import { toast } from 'sonner';
 
 function EditarSafraContent() {
   const router = useRouter();
@@ -75,7 +76,7 @@ function EditarSafraContent() {
 
     const { isSuccess, errorMessage } = await updateSafra(safraId, body);
     if (isSuccess)     router.push(`/controleSafra`);
-    else alert(errorMessage || 'Falha ao salvar');
+    else toast.error(errorMessage || 'Falha ao salvar');
   };
 
   const onConfirmAreas = (novas: AreasEntity[]) => {
@@ -92,7 +93,7 @@ function EditarSafraContent() {
 
     const { isSuccess, errorMessage } = await deactivatePlantio(plantioId);
     if (isSuccess) setPlantios((prev) => prev.filter((p) => p.id !== plantioId));
-    else alert(errorMessage || 'Erro ao desativar');
+    else toast.error(errorMessage || 'Erro ao desativar');
   };
 
   if (loading) return <main className="p-6">Carregando…</main>;
