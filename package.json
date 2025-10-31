@@ -13,6 +13,7 @@
     "cypress:run:headed": "cypress run --component --headed"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.917.0",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.12",

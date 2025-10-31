@@ -16,6 +16,7 @@ import type { AreasEntity } from '@/service/areas';
 import { getSafraById } from '@/service/safras';
 
 import { getPlantioById, updatePlantio, type PlantioUpdate } from '@/service/plantios';
+import { toast } from 'sonner';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
@@ -152,7 +153,7 @@ function EditarPlantioContent() {
     if (isSuccess) {
       router.push(`/cadastrarSafra/safraEditar?safraId=${sid}`);
     } else {
-      alert(errorMessage || 'Falha ao salvar');
+      toast.error(errorMessage || 'Falha ao salvar');
     }
   };
 

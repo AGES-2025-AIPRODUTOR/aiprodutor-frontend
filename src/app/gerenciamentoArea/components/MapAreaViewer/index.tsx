@@ -23,6 +23,7 @@ import {
 } from '@/service/areas';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import { geojsonToPaths, rgbToHex, pathsToBounds, LatLng } from '@/utils/geo';
+import Loading from '@/components/Loading';
 
 interface MapAreaViewerProps {
   selectedAreaId?: number;
@@ -297,14 +298,14 @@ export default function MapAreaViewer({
     return (
       <div className="h-full flex flex-col lg:flex-row">
         <div className="flex-1 relative">
-          <GoogleMapWrapper center={defaultCenter} zoom={12} height="100%" />
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 lg:top-8">
-            <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-100 mx-4 backdrop-blur-sm">
-              <div className="flex items-center space-x-3">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-500 border-t-transparent"></div>
-                <p className="text-sm text-gray-700 font-medium">Carregando dados da área...</p>
-              </div>
+          {!selectedArea && loading && (
+            <div className="h-[calc(100vh-49px)] w-full flex justify-center items-center">
+              <Loading label="Carregando Área..." />
             </div>
+          )}
+          {selectedArea && <GoogleMapWrapper center={defaultCenter} zoom={12} height="100%" />}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 lg:top-8">
+            <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-100 mx-4 backdrop-blur-sm"></div>
           </div>
         </div>
       </div>
