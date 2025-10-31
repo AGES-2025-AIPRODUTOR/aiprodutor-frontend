@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "cypress:open": "cypress open --component",
+    "cypress:run": "cypress run --component",
+    "cypress:run:headed": "cypress run --component --headed"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.917.0",
@@ -55,6 +58,7 @@
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
     "autoprefixer": "^10.4.21",
+    "cypress": "^15.4.0",
     "eslint": "^9.34.0",
     "eslint-config-next": "15.4.6",
     "eslint-plugin-react": "^7.37.5",
