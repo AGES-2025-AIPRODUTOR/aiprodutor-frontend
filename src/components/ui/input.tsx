@@ -6,8 +6,11 @@ type InputProps = React.ComponentProps<"input"> & {
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, unit, ...props }, ref) => {
-    const [value, setValue] = React.useState("")
+  ({ className, type, unit, onChange, ...props }, ref) => {
+    const [localValue, setLocalValue] = React.useState("")
+
+    const isControlled = props.value !== undefined
+    const displayValue = isControlled ? props.value : localValue
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let txt = e.target.value
@@ -27,10 +30,17 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         const [int, dec = ""] = txt.split(/[.,]/)
         txt = dec ? `${int},${dec.slice(0, 2)}` : int
 
-        setValue(txt ? `${txt}${suffix}` : "")
+        const finalValue = txt ? `${txt}${suffix}` : ""
+        setLocalValue(finalValue)
+        if (onChange) {
+          onChange(e)
+        }
       } else {
         // comportamento padrão sem unidade
-        setValue(txt)
+        setLocalValue(txt)
+        if (onChange) {
+          onChange(e)
+        }
       }
     }
 
@@ -38,10 +48,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         ref={ref}
-        value={value}
+        value={displayValue}
         onChange={handleChange}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          "flex h-9 w-full rounded-md border border-gray-300 bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-600 focus-visible:border-green-600 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
           className
         )}
         {...props}

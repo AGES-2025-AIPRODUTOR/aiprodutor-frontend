@@ -7,6 +7,9 @@ import { postArea, type AreaCreate } from '@/service/areas';
 import { useSoilAndIrrigationTypes } from '../hooks/useSoilAndIrrigationTypes';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
 export type CadastroAreaProps = {
   onError?: (err: Error) => void;
   menuHeight?: number;
@@ -177,14 +180,15 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
                 {nomeArea.length}/{maxLengthNome}
               </span>
             </div>
-            <input
+            <Input
               type="text"
               placeholder="Nome da área"
               value={nomeArea}
               onChange={handleNomeChange}
-              className="border border-gray-300 text-gray-600 h-9 px-2 focus:outline-none rounded w-full select-text"
+              className="select-text"
             />
           </div>
+
 
           {/* Dropdown Solo */}
           <div className="flex flex-col gap-1 w-full px-2 text-md text-gray-400">
@@ -222,14 +226,14 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
 
           {/* Botão Concluir */}
           <div className="flex justify-center mt-2">
-            <button
+            <Button
               onClick={handleSubmit}
-              className="bg-green-600 text-green-50 min-h-12 min-w-44 rounded border-none cursor-pointer hover:bg-green-700"
+              className="min-h-12 min-w-44"
               disabled={!polygonLatLng}
               title={!polygonLatLng ? 'Desenhe a área no mapa para continuar' : undefined}
             >
               Concluir
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { StatusBadge } from './statusBadge';
 import { HistoryEntity, PlantingItem } from '@/service/history';
 
@@ -57,9 +58,10 @@ export const HistoricoSafraCard: React.FC<{
       </div>
 
       <div className="mb-4">
-        <button
+        <Button
+          variant="outline"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-between p-3"
         >
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-800">Quantidade Total Esperada:</span>
@@ -70,7 +72,7 @@ export const HistoricoSafraCard: React.FC<{
           ) : (
             <ChevronDown size={18} className="text-gray-500" />
           )}
-        </button>
+        </Button>
 
         {isExpanded && safra.planting && safra.planting.length > 0 && (
           <div className="mt-2 space-y-2">
@@ -94,13 +96,12 @@ export const HistoricoSafraCard: React.FC<{
       </div>
 
       <div className="mt-4">
-        <button
+        <Button
           onClick={() => onDetailsClick?.(safra.safraId)}
-          className="w-full py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity text-sm"
-          style={{ backgroundColor: '#38A068' }}
+          className="w-full py-2 text-sm"
         >
           Detalhes
-        </button>
+        </Button>
       </div>
     </div>
   );

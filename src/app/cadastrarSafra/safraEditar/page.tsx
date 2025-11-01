@@ -7,6 +7,7 @@ import Link from 'next/link';
 
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList';
@@ -126,11 +127,10 @@ function EditarSafraContent() {
       {/* Nome */}
       <div className="mb-5">
         <label className="mb-1 block text-sm font-medium text-gray-700">Nome *</label>
-        <input
+        <Input
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           placeholder="Ex.: Safra de Laranja 25/26"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -170,7 +170,7 @@ function EditarSafraContent() {
       {/* Ações */}
       <div className="mt-6">
         <Button
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
           onClick={onSalvar}
           disabled={!podeSalvar}
         >

@@ -3,6 +3,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ConfirmDialog } from '../../../components/ui/confirmDialog';
+import { Button } from '../../../components/ui/button';
 import { AreasEntity, getAllIrrigationTypes, getAllSoilTypes } from '@/service/areas';
 import PolygonMini from '../../../components/PolygonMini';
 
@@ -70,12 +71,14 @@ export default function SelecionarArea({ areas = [], onChange, onAddClick }: Sel
     <div className="text-gray-400">
       <div className="m-1 flex items-end justify-between">
         <label>Áreas</label>
-        <button
-          className="rounded-sm border border-green-300 p-0.5 text-green-300"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="rounded-sm border border-green-300 text-green-300 hover:bg-green-50"
           onClick={onAddClick}
         >
           Adicionar Áreas
-        </button>
+        </Button>
       </div>
 
       <div className="relative h-[8rem] w-[90vw] max-w-[600px] overflow-y-auto rounded-md border border-neutral-300 bg-white px-4 py-1">
@@ -116,12 +119,14 @@ export default function SelecionarArea({ areas = [], onChange, onAddClick }: Sel
               </div>
 
               {/* Excluir */}
-              <button
-                className="ml-auto rounded-sm border border-red-700 p-0.5 text-red-700"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto rounded-sm border border-red-600 text-red-600 hover:bg-red-50"
                 onClick={() => setConfirmExcluirId(area.id)}
               >
                 Excluir
-              </button>
+              </Button>
             </div>
           ))
         )}

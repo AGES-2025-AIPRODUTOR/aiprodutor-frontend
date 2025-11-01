@@ -174,7 +174,7 @@ export function EditAreaForm({
                 areaId={areaId}
                 buttonSize="sm"
               />
-              <Button type="submit" className="w-full py-5 bg-green-600 hover:bg-green-700 mb-3">
+              <Button type="submit" className="w-full py-5 mb-3">
                 {isLoading ? 'Carregando...' : 'Concluir'}
               </Button>
             </div>

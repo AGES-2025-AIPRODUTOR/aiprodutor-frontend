@@ -27,13 +27,12 @@ export function ConfirmDialog({ isOpen, description, onConfirm, onCancel }: Conf
           {/* Botões centralizados */}
           <div className="mt-6 flex justify-center gap-4">
             <Button
-              className="rounded-sm px-6 bg-white border hover:bg-gray-100 border-green-600 text-green-600"
+              variant="outline"
               onClick={onCancel}
             >
               Cancelar
             </Button>
             <Button
-              className="bg-green-600 text-white hover:bg-green-700 rounded-sm px-6"
               onClick={onConfirm}
             >
               Confirmar

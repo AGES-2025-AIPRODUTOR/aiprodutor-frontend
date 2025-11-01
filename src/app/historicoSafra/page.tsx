@@ -133,9 +133,9 @@ const Page = () => {
 
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
-            <Button
-              className="px-3 py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 relative"
-              style={{ backgroundColor: '#38A068', fontSize: '11px' }}
+              <Button
+              className="px-3 py-2 text-white font-medium rounded-lg flex items-center gap-2 relative"
+              style={{ fontSize: '11px' }}
             >
               <Filter size={16} />
               Filtros
@@ -207,7 +207,6 @@ const Page = () => {
               </Button>
               <Button
                 className="flex-1"
-                style={{ backgroundColor: '#38A068' }}
                 onClick={() => {
                   const filters: HarvestHistoryFilters = {};
 
@@ -246,7 +245,9 @@ const Page = () => {
                 <span className="text-green-700 text-xs font-medium">
                   {filter.label}: {filter.value}
                 </span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {
                     if (filter.label === 'Status') {
                       setStatusFilter({ selected: '', open: false });
@@ -265,24 +266,26 @@ const Page = () => {
                       setAppliedFilters(newFilters);
                     }
                   }}
-                  className="text-green-600 hover:text-green-800 w-4 h-4 flex items-center justify-center rounded-full hover:bg-green-200 transition-colors"
+                  className="w-4 h-4 p-0 text-green-600 hover:text-green-800 hover:bg-green-200 rounded-full"
                 >
                   <X size={10} />
-                </button>
+                </Button>
               </div>
             ))}
             {activeFilters.length > 1 && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setStatusFilter({ selected: '', open: false });
                   setSafraInitialDate('');
                   setSafraEndDate('');
                   setAppliedFilters({});
                 }}
-                className="bg-gray-100 border border-gray-300 rounded-full px-3 py-1 text-xs text-gray-600 hover:bg-gray-200 transition-colors"
+                className="rounded-full text-xs"
               >
                 Limpar todos
-              </button>
+              </Button>
             )}
           </div>
         </div>

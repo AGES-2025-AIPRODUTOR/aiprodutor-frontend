@@ -203,11 +203,10 @@ function EditarPlantioContent() {
       {/* Nome do plantio */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">Nome do Plantio *</label>
-        <input
+        <Input
           value={nomePlantio}
           onChange={(e) => setNomePlantio(e.target.value)}
           placeholder="Ex.: Plantio de tomate"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -230,11 +229,10 @@ function EditarPlantioContent() {
           <label className="mb-1 block text-sm font-medium text-gray-700">
             Produtividade Esperada (número)
           </label>
-          <input
+          <Input
             type="number"
             value={produtividadeTxt}
             onChange={(e) => setProdutividadeTxt(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="ex.: 800000"
           />
         </div>
@@ -274,7 +272,7 @@ function EditarPlantioContent() {
           Cancelar
         </Button>
         <Button
-          className="flex-1 bg-green-600 hover:bg-green-700"
+          className="flex-1"
           onClick={onSalvar}
           disabled={!podeSalvar}
         >

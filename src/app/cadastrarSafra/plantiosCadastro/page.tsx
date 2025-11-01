@@ -281,8 +281,7 @@ export default function PlantiosPage() {
       {/* Nome do Plantio */}
       <div className="mt-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">Nome do Plantio *</label>
-        <input
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+        <Input
           placeholder="Ex.: Plantio de Tomate - Talhão 1"
           value={plantioNome}
           onChange={(e) => setPlantioNome(e.target.value)}
@@ -374,7 +373,7 @@ export default function PlantiosPage() {
           type="button"
           onClick={handleAdicionarOutro}
           disabled={!podeAdicionar}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60"
+          className="w-full"
         >
           Adicionar outro plantio
         </Button>
@@ -385,7 +384,7 @@ export default function PlantiosPage() {
           type="button"
           variant="outline"
           onClick={() => router.push('/cadastrarSafra')}
-          className="flex-1 border-green-700 text-green-700"
+          className="flex-1"
         >
           Cancelar
         </Button>
@@ -393,7 +392,7 @@ export default function PlantiosPage() {
           type="button"
           onClick={abrirConfirmacao}
           disabled={salvando}
-          className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60"
+          className="flex-1"
         >
           {salvando ? 'Salvando…' : 'Finalizar'}
         </Button>
@@ -452,7 +451,7 @@ export default function PlantiosPage() {
             <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
               Voltar
             </Button>
-            <Button onClick={salvarAgora} className="flex-1 bg-green-600 hover:bg-green-700">
+            <Button onClick={salvarAgora} className="flex-1">
               Confirmar e salvar
             </Button>
           </DialogFooter>
