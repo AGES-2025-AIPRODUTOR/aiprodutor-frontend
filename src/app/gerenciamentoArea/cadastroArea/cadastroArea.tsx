@@ -123,10 +123,14 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
       };
 
       const result = await postArea(payload);
+      console.log(result);
 
       if (!result.isSuccess) {
         toast.error('Ocorreu Algum erro no cadastro da Área!');
         console.log('Detalhes:', result);
+      } else {
+        router.push('/gerenciamentoArea');
+        toast.success('Área Criada com Sucesso!');
       }
     } catch (err: any) {
       const data = err?.response?.data ?? err;
