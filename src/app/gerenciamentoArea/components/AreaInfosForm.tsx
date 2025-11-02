@@ -89,22 +89,6 @@ export function EditAreaForm({
     }
   }
 
-  const handleDeleteArea = async (areaId: number) => {
-    const { isSuccess, errorMessage } = await deleteArea(areaId);
-    if (isSuccess) {
-      toast.success('Área Excluída com Sucesso.');
-      if (pathname === '/gerenciamentoArea') {
-        refetch?.();
-        // opcional: router.refresh();
-        onClose?.();
-      } else {
-        router.push('/gerenciamentoArea');
-      }
-    } else {
-      toast.error(errorMessage);
-    }
-  };
-
   return (
     <>
       <div className="max-w-md mx-auto mt-2 align-middle px-8 pb-3 ">
@@ -169,11 +153,14 @@ export function EditAreaForm({
             />
 
             <div className="flex gap-4">
-              <DeleteAreaConfirmDialog
-                handleDeleteArea={handleDeleteArea}
-                areaId={areaId}
-                buttonSize="sm"
-              />
+              <Button
+                type="button"
+                onClick={onClose}
+                variant={'outline'}
+                className="w-full py-5 border border-green-600 text-green-600 bg-white hover:bg mb-3"
+              >
+                {isLoading ? 'Carregando...' : 'Cancelar'}
+              </Button>
               <Button type="submit" className="w-full py-5 bg-green-600 hover:bg-green-700 mb-3">
                 {isLoading ? 'Carregando...' : 'Concluir'}
               </Button>

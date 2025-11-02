@@ -396,7 +396,6 @@ export default function MapAreaViewer({
             refetch={refetch}
             onClose={() => {
               setIsDrawerVisible(false);
-              setSelectedArea(null);
             }}
           />
         </div>
