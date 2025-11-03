@@ -334,7 +334,7 @@ export default function MapAreaViewer({
         </div>
 
         {/* Carrossel flutuante inferior para selecionar via nome (substitui lista lateral) */}
-        {!selectedAreaId && !isDrawerVisible && (
+        {!isDrawerVisible && (
           <div
             ref={carouselWrapperRef}
             className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-30 w-[75%] max-w-4xl"
