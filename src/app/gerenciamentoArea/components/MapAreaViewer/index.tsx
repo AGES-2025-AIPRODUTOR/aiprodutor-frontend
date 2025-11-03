@@ -328,7 +328,6 @@ export default function MapAreaViewer({
         <div className="absolute top-4 left-4 z-20">
           <Button
             onClick={onBack}
-            className="bg-green-600 hover:bg-green-700 border border-green-600 text-white"
           >
             Voltar
           </Button>

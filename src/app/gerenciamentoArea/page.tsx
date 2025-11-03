@@ -123,7 +123,7 @@ export default function GerenciamentoArea() {
           <Tooltip open={areasList.length === 0 && !isLoading && !isError}>
             <TooltipTrigger asChild>
               <Link href="/gerenciamentoArea/desenharArea">
-                <Button variant="outline" className="border-green-700 text-green-700 py-7 px-4">
+                <Button variant="outline" className="py-7 px-4">
                   <Plus className="mr-2 h-5 w-5" />
                   Adicionar Nova Área
                 </Button>
@@ -173,7 +173,7 @@ export default function GerenciamentoArea() {
         <div className="sticky bottom-0 w-full px-6 py-5 bg-white border drop-shadow-2xl mt-auto">
           <Link href="/gerenciamentoArea/editarArea/mapa">
             <Button
-              className="w-full border-green-500 hover:bg-green-500 bg-green-500 active:bg-green-900 focus:bg-green-900 py-7"
+              className="w-full py-7"
               size="lg"
             >
               Visualizar no Mapa

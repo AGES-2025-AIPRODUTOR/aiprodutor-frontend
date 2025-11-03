@@ -15,7 +15,13 @@ import {
 } from '@/components/ui/sheet';
 import { Filter, X } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
-import Dropdown from '../gerenciamentoArea/cadastroArea/dropdown';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   getAllHistory,
   HarvestHistoryFilters,
@@ -46,10 +52,7 @@ const Page = () => {
   const router = useRouter();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [searchValue, setSearchValue] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<{ selected: string; open: boolean }>({
-    selected: '',
-    open: false,
-  });
+  const [statusFilter, setStatusFilter] = useState<string>('');
   const [safraInitialDate, setSafraInitialDate] = useState<string>('');
   const [safraEndDate, setSafraEndDate] = useState<string>('');
   const [appliedFilters, setAppliedFilters] = useState<HarvestHistoryFilters>({});
@@ -134,8 +137,8 @@ const Page = () => {
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button
-              className="px-3 py-2 text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 relative"
-              style={{ backgroundColor: '#38A068', fontSize: '11px' }}
+              className="px-3 py-2 text-white font-medium rounded-lg flex items-center gap-2 relative"
+              style={{ fontSize: '11px' }}
             >
               <Filter size={16} />
               Filtros
@@ -157,11 +160,16 @@ const Page = () => {
               {/* STATUS */}
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Dropdown
-                  options={['Todos', 'Concluído', 'Em Andamento', 'Desativado']}
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Concluído">Concluído</SelectItem>
+                    <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                    <SelectItem value="Desativado">Desativado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* DATA INICIAL */}
@@ -197,7 +205,7 @@ const Page = () => {
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  setStatusFilter({ selected: '', open: false });
+                  setStatusFilter('');
                   setSafraInitialDate('');
                   setSafraEndDate('');
                   setAppliedFilters({});
@@ -207,17 +215,16 @@ const Page = () => {
               </Button>
               <Button
                 className="flex-1"
-                style={{ backgroundColor: '#38A068' }}
                 onClick={() => {
                   const filters: HarvestHistoryFilters = {};
 
-                  if (statusFilter.selected && statusFilter.selected !== 'Todos') {
+                  if (statusFilter) {
                     const statusMap: Record<string, string> = {
                       Concluído: 'completed',
                       'Em Andamento': 'in_progress',
                       Desativado: 'cancelled',
                     };
-                    filters.status = statusMap[statusFilter.selected];
+                    filters.status = statusMap[statusFilter];
                   }
 
                   if (safraInitialDate) filters.safraInitialDate = safraInitialDate;
@@ -246,10 +253,12 @@ const Page = () => {
                 <span className="text-green-700 text-xs font-medium">
                   {filter.label}: {filter.value}
                 </span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {
                     if (filter.label === 'Status') {
-                      setStatusFilter({ selected: '', open: false });
+                      setStatusFilter('');
                       const newFilters = { ...appliedFilters };
                       delete newFilters.status;
                       setAppliedFilters(newFilters);
@@ -265,24 +274,26 @@ const Page = () => {
                       setAppliedFilters(newFilters);
                     }
                   }}
-                  className="text-green-600 hover:text-green-800 w-4 h-4 flex items-center justify-center rounded-full hover:bg-green-200 transition-colors"
+                  className="w-4 h-4 p-0 text-green-600 hover:text-green-800 hover:bg-green-200 rounded-full"
                 >
                   <X size={10} />
-                </button>
+                </Button>
               </div>
             ))}
             {activeFilters.length > 1 && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
-                  setStatusFilter({ selected: '', open: false });
+                  setStatusFilter('');
                   setSafraInitialDate('');
                   setSafraEndDate('');
                   setAppliedFilters({});
                 }}
-                className="bg-gray-100 border border-gray-300 rounded-full px-3 py-1 text-xs text-gray-600 hover:bg-gray-200 transition-colors"
+                className="rounded-full text-xs"
               >
                 Limpar todos
-              </button>
+              </Button>
             )}
           </div>
         </div>

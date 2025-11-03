@@ -30,7 +30,6 @@ export const SafraCard: React.FC<SafraCardProps> = ({
           variant="outline"
           size="sm"
           onClick={() => onViewControl(safra.id)}
-          className="border-green-600 text-green-600 hover:bg-green-50 bg-white"
         >
           Ver Controle
         </Button>
@@ -52,16 +51,16 @@ export const SafraCard: React.FC<SafraCardProps> = ({
           variant="outline"
           size="sm"
           onClick={() => onEdit(safra.id)}
-          className="flex-1 border-green-600 text-green-600 hover:bg-green-50 bg-white"
+          className="flex-1"
         >
           <Edit className="w-4 h-4 mr-2" />
           Editar
         </Button>
         <Button
-          variant="outline"
+          variant="destructive"
           size="sm"
           onClick={() => onDelete(safra.id)}
-          className="flex-1 border-green-600 text-green-600 hover:bg-green-50 bg-white"
+          className="flex-1"
         >
           <Trash2 className="w-4 h-4 mr-2" />
           Excluir

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useId, useRef, useState } from "react";
+import { Input } from "./input";
+import { Button } from "./button";
 
 type DateFieldModalProps = {
   label: string;
@@ -78,15 +80,16 @@ export default function DateFieldModal({
       </label>
 
       {/* Botão/“pill” que abre o modal */}
-      <button
+      <Button
         type="button"
+        variant="outline"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl border border-gray-300 px-4 py-2 text-left text-gray-900 shadow-sm outline-none hover:bg-gray-50 disabled:opacity-60"
+        className="w-full rounded-2xl text-left"
         aria-label={`Selecionar ${label}`}
       >
         {value ? formatBR(value) : "dd/mm/aaaa"}
-      </button>
+      </Button>
 
       {/* Modal embutido no mesmo componente */}
       {open && (
@@ -105,10 +108,10 @@ export default function DateFieldModal({
             <div className="mt-4 space-y-4">
               <label className="block text-sm font-medium text-gray-700">
                 Data
-                <input
+                <Input
                   ref={inputRef}
                   type="date"
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                  className="mt-1"
                   value={temp ?? ""}
                   min={min}
                   max={max}
@@ -118,21 +121,20 @@ export default function DateFieldModal({
               </label>
 
               <div className="mt-6 flex items-center justify-end gap-3">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setOpen(false)}
-                  className="rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   {cancelLabel}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={save}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                   disabled={!temp}
                 >
                   {confirmLabel}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

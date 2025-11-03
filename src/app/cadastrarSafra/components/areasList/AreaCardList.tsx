@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import React from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import PolygonMini from '@/components/PolygonMini';
 
 export default function AreaCardList(props: {
@@ -52,11 +53,9 @@ export default function AreaCardList(props: {
         </div>
       </div>
 
-      <input
-        type="checkbox"
+      <Checkbox
         checked={checked}
-        onChange={(e) => onCheckedChange?.(e.target.checked)}
-        className="w-6 h-6 accent-green-600 cursor-pointer flex-shrink-0 ml-3"
+        onCheckedChange={onCheckedChange}
       />
     </div>
   );

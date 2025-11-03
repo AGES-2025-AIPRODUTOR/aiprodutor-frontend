@@ -65,7 +65,7 @@ export default function ControleSafra() {
         <Link href="/cadastrarSafra/safraCadastro">
           <Button
             variant="outline"
-            className="border-green-700 text-green-700 py-7 px-4 bg-white hover:bg-green-50"
+            className="py-7 px-4"
           >
             <Plus className="mr-2 h-5 w-5" />
             Adicionar Nova Safra

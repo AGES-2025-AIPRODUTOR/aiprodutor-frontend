@@ -4,6 +4,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { GoogleMap, OverlayView, Polyline, Polygon, useJsApiLoader } from '@react-google-maps/api';
 import { useRouter } from 'next/navigation';
 import Loading from '@/components/Loading';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 export type LatLng = google.maps.LatLngLiteral;
 
@@ -289,13 +291,9 @@ export default function FreeDrawMap({
       {/* Controles */}
       {!confirmOpen && (
         <div className="absolute z-10 left-4 top-4 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleDrawMode}
-            className="rounded-md px-4 py-2 bg-emerald-600 text-white shadow-md hover:opacity-90"
-          >
+          <Button type="button" onClick={toggleDrawMode} className="shadow-md">
             {isDrawMode ? 'Sair do modo desenho' : 'Desenhar área'}
-          </button>
+          </Button>
 
           {/* {isDrawMode && (
             <label className="flex items-center gap-2 bg-white/90 rounded-md px-3 py-2 shadow">
@@ -390,13 +388,15 @@ export default function FreeDrawMap({
           <div className="p-4 flex flex-col min-h-full">
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Confirmar área</h2>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 type="button"
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                className="flex-shrink-0 h-8 w-8"
               >
-                ✕
-              </button>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
             <div className="flex flex-col gap-4 flex-shrink-0">
@@ -420,20 +420,17 @@ export default function FreeDrawMap({
 
               {/* Botões de ação */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  type="button"
-                  onClick={handleConfirm}
-                  className="flex-1 rounded-lg px-4 py-3 bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors whitespace-nowrap"
-                >
+                <Button type="button" onClick={handleConfirm} className="flex-1 whitespace-nowrap">
                   Confirmar área
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleDiscard}
-                  className="flex-1 rounded-lg px-4 py-3 bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap"
+                  variant="outline"
+                  className="flex-1 whitespace-nowrap"
                 >
                   Desfazer desenho
-                </button>
+                </Button>
               </div>
             </div>
           </div>

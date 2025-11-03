@@ -48,7 +48,7 @@ export default function AreaCard(props: {
           className="w-full"
         >
           <Button
-            className="w-full border-green-700 text-green-700 py-5 px-4 basis-1"
+            className="w-full py-5 px-4 basis-1"
             variant="outline"
           >
             <Pencil />

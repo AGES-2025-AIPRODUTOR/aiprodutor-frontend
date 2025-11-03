@@ -2,11 +2,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Dropdown from './dropdown';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { postArea, type AreaCreate } from '@/service/areas';
 import { useSoilAndIrrigationTypes } from '../hooks/useSoilAndIrrigationTypes';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
 export type CadastroAreaProps = {
   onError?: (err: Error) => void;
   menuHeight?: number;
@@ -16,14 +25,8 @@ type LatLng = { lat: number; lng: number };
 
 export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: CadastroAreaProps) {
   const [nomeArea, setNomeArea] = useState('');
-  const [solo, setSolo] = useState<{ selected: string; open: boolean }>({
-    selected: 'Selecione',
-    open: false,
-  });
-  const [irrigacao, setIrrigacao] = useState<{ selected: string; open: boolean }>({
-    selected: 'Selecione',
-    open: false,
-  });
+  const [solo, setSolo] = useState<string>('');
+  const [irrigacao, setIrrigacao] = useState<string>('');
   const router = useRouter();
 
   // 🚀 carrega tipos pela API
@@ -86,13 +89,13 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
       toast.info('Informe o nome da área');
       return;
     }
-    if (solo.selected === 'Selecione' || irrigacao.selected === 'Selecione') {
+    if (!solo || !irrigacao) {
       toast.info('Selecione o tipo de solo e de irrigação.');
       return;
     }
 
-    const soilTypeId = soilTypes.find((s) => s.name === solo.selected)?.id;
-    const irrigationTypeId = irrigationTypes.find((i) => i.name === irrigacao.selected)?.id;
+    const soilTypeId = soilTypes.find((s) => s.name === solo)?.id;
+    const irrigationTypeId = irrigationTypes.find((i) => i.name === irrigacao)?.id;
 
     if (!soilTypeId || !irrigationTypeId) {
       toast.error('Não foi possível identificar os IDs de solo/irrigação.');
@@ -177,12 +180,12 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
                 {nomeArea.length}/{maxLengthNome}
               </span>
             </div>
-            <input
+            <Input
               type="text"
               placeholder="Nome da área"
               value={nomeArea}
               onChange={handleNomeChange}
-              className="border border-gray-300 text-gray-600 h-9 px-2 focus:outline-none rounded w-full select-text"
+              className="select-text"
             />
           </div>
 
@@ -194,7 +197,18 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
             ) : error ? (
               <div className="px-1 text-sm text-red-600">{error}</div>
             ) : (
-              <Dropdown options={soloOptions} value={solo} onChange={setSolo} />
+              <Select value={solo} onValueChange={setSolo} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {soloOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 
@@ -206,7 +220,18 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
             ) : error ? (
               <div className="px-1 text-sm text-red-600">{error}</div>
             ) : (
-              <Dropdown options={irrigOptions} value={irrigacao} onChange={setIrrigacao} />
+              <Select value={irrigacao} onValueChange={setIrrigacao} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {irrigOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 
@@ -222,14 +247,14 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
 
           {/* Botão Concluir */}
           <div className="flex justify-center mt-2">
-            <button
+            <Button
               onClick={handleSubmit}
-              className="bg-green-600 text-green-50 min-h-12 min-w-44 rounded border-none cursor-pointer hover:bg-green-700"
+              className="min-h-12 min-w-44"
               disabled={!polygonLatLng}
               title={!polygonLatLng ? 'Desenhe a área no mapa para continuar' : undefined}
             >
               Concluir
-            </button>
+            </Button>
           </div>
         </div>
       </div>

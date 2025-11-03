@@ -3,6 +3,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import Loading from '@/components/Loading';
 import {
   getAllAreas,
@@ -138,14 +139,10 @@ export default function AreaListModal({
           <h2 className="text-lg font-semibold">Selecione as áreas desejadas</h2>
 
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={allChecked}
-              ref={(el) => {
-                if (el) el.indeterminate = someChecked;
-              }}
-              onChange={toggleAll}
-              className="h-4 w-4 accent-green-600"
+              indeterminate={someChecked}
+              onCheckedChange={toggleAll}
             />
             {allChecked ? 'Desmarcar todas' : 'Selecionar todas'}
           </label>
@@ -183,11 +180,9 @@ export default function AreaListModal({
                   </div>
                 </div>
 
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selectedIds.includes(area.id)}
-                  onChange={(e) => toggleSelection(area.id, e.target.checked)}
-                  className="w-6 h-6 accent-green-600 cursor-pointer flex-shrink-0 ml-3"
+                  onCheckedChange={(checked) => toggleSelection(area.id, checked as boolean)}
                 />
               </div>
             ))}
@@ -199,7 +194,7 @@ export default function AreaListModal({
           </Button>
           <Button
             onClick={handleConfirm}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60"
+            className="flex-1"
             disabled={selectedIds.length === 0}
           >
             Concluir

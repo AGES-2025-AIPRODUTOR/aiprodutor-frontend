@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
@@ -60,7 +66,15 @@ export function EditAreaForm({
       if (soilTypeName) form.setValue('soilType', soilTypeName);
       if (irrigationTypeName) form.setValue('irrigationType', irrigationTypeName);
     }
-  }, [areaName, soilTypeName, irrigationTypeName, form, loading, soilTypes.length, irrigationTypes.length]);
+  }, [
+    areaName,
+    soilTypeName,
+    irrigationTypeName,
+    form,
+    loading,
+    soilTypes.length,
+    irrigationTypes.length,
+  ]);
 
   async function onSubmit(data: FormValues) {
     setIsLoading(true);
@@ -68,7 +82,8 @@ export function EditAreaForm({
       const { isSuccess, errorMessage } = await editArea(areaId, {
         name: data.areaName,
         soilTypeId: soilTypes.find((type) => type.name === data.soilType)?.id ?? 0,
-        irrigationTypeId: irrigationTypes.find((type) => type.name === data.irrigationType)?.id ?? 0,
+        irrigationTypeId:
+          irrigationTypes.find((type) => type.name === data.irrigationType)?.id ?? 0,
         isActive: true,
       });
 
@@ -107,11 +122,15 @@ export function EditAreaForm({
               name="soilType"
               render={({ field }) => (
                 <FormItem>
-                  <Label className="text-mg font-bold mb-3 text-gray-700 block">Tipo de solo:</Label>
+                  <Label className="text-mg font-bold mb-3 text-gray-700 block">
+                    Tipo de solo:
+                  </Label>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value} disabled={loading}>
                       <SelectTrigger>
-                        <SelectValue placeholder={loading ? "Carregando..." : "Selecione o tipo de solo"} />
+                        <SelectValue
+                          placeholder={loading ? 'Carregando...' : 'Selecione o tipo de solo'}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {soilTypes.map((type) => (
@@ -132,11 +151,15 @@ export function EditAreaForm({
               name="irrigationType"
               render={({ field }) => (
                 <FormItem>
-                  <Label className="text-mg font-bold mb-4 text-gray-700 block">Tipo de irrigação:</Label>
+                  <Label className="text-mg font-bold mb-4 text-gray-700 block">
+                    Tipo de irrigação:
+                  </Label>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value} disabled={loading}>
                       <SelectTrigger>
-                        <SelectValue placeholder={loading ? "Carregando..." : "Selecione o tipo de irrigação"} />
+                        <SelectValue
+                          placeholder={loading ? 'Carregando...' : 'Selecione o tipo de irrigação'}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {irrigationTypes.map((type) => (

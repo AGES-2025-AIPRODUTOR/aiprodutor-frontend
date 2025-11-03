@@ -4,6 +4,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { X } from 'lucide-react';
 import type { AreasEntity } from '@/service/areas';
 
 type Props = {
@@ -89,37 +91,36 @@ export default function PickAreasModal({
       <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg">
         <div className="mb-3 flex items-start justify-between">
           <h3 className="text-lg font-semibold">{title}</h3>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="Fechar"
             onClick={onClose}
-            className="rounded p-1 text-gray-500 hover:bg-gray-100"
+            className="h-6 w-6"
           >
-            ✕
-          </button>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         <div className="mb-2 flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={allChecked}
-              ref={(el) => {
-                if (el) el.indeterminate = someChecked;
-              }}
-              onChange={toggleAll}
-              className="h-4 w-4 accent-green-600"
+              indeterminate={someChecked}
+              onCheckedChange={toggleAll}
             />
             {allChecked ? 'Desmarcar todas' : 'Selecionar todas'}
           </label>
 
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             onClick={() => setIds(new Set<number>())}
-            className="text-xs text-gray-500 hover:underline"
+            className="text-xs h-auto p-0"
           >
             Limpar
-          </button>
+          </Button>
         </div>
 
         <div className="mt-2 max-h-[50vh] space-y-2 overflow-y-auto">
@@ -128,11 +129,9 @@ export default function PickAreasModal({
           ) : (
             allowed.map((a) => (
               <label key={a.id} className="flex items-center gap-2 rounded border p-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={ids.has(a.id)}
-                  onChange={() => toggle(a.id)}
-                  className="h-4 w-4 accent-green-600"
+                  onCheckedChange={() => toggle(a.id)}
                 />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{a.name}</p>
@@ -152,7 +151,7 @@ export default function PickAreasModal({
             Cancelar
           </Button>
           <Button
-            className="flex-1 bg-green-600 hover:bg-green-700"
+            className="flex-1"
             onClick={handleConfirm}
             disabled={ids.size === 0}
           >

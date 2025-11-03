@@ -21,7 +21,7 @@ export const EmptyState: React.FC = () => {
       </p>
       
       <Link href="/cadastrarSafra">
-        <Button className="bg-green-600 hover:bg-green-700 text-white">
+        <Button>
           <Plus className="w-4 h-4 mr-2" />
           Adicionar Nova Safra
         </Button>
