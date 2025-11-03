@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Dropdown from './dropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { postArea, type AreaCreate } from '@/service/areas';
 import { useSoilAndIrrigationTypes } from '../hooks/useSoilAndIrrigationTypes';
 import { useRouter } from 'next/navigation';
@@ -19,14 +19,8 @@ type LatLng = { lat: number; lng: number };
 
 export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: CadastroAreaProps) {
   const [nomeArea, setNomeArea] = useState('');
-  const [solo, setSolo] = useState<{ selected: string; open: boolean }>({
-    selected: 'Selecione',
-    open: false,
-  });
-  const [irrigacao, setIrrigacao] = useState<{ selected: string; open: boolean }>({
-    selected: 'Selecione',
-    open: false,
-  });
+  const [solo, setSolo] = useState<string>('');
+  const [irrigacao, setIrrigacao] = useState<string>('');
   const router = useRouter();
 
   // 🚀 carrega tipos pela API
@@ -89,13 +83,13 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
       alert('Informe o nome da área');
       return;
     }
-    if (solo.selected === 'Selecione' || irrigacao.selected === 'Selecione') {
+    if (!solo || !irrigacao) {
       alert('Selecione o tipo de solo e de irrigação.');
       return;
     }
 
-    const soilTypeId = soilTypes.find((s) => s.name === solo.selected)?.id;
-    const irrigationTypeId = irrigationTypes.find((i) => i.name === irrigacao.selected)?.id;
+    const soilTypeId = soilTypes.find((s) => s.name === solo)?.id;
+    const irrigationTypeId = irrigationTypes.find((i) => i.name === irrigacao)?.id;
 
     if (!soilTypeId || !irrigationTypeId) {
       alert('Não foi possível identificar os IDs de solo/irrigação.');
@@ -198,7 +192,18 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
             ) : error ? (
               <div className="px-1 text-sm text-red-600">{error}</div>
             ) : (
-              <Dropdown options={soloOptions} value={solo} onChange={setSolo} />
+              <Select value={solo} onValueChange={setSolo} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {soloOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 
@@ -210,7 +215,18 @@ export default function CadastroAreaFullScreen({ onError, menuHeight = 50 }: Cad
             ) : error ? (
               <div className="px-1 text-sm text-red-600">{error}</div>
             ) : (
-              <Dropdown options={irrigOptions} value={irrigacao} onChange={setIrrigacao} />
+              <Select value={irrigacao} onValueChange={setIrrigacao} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {irrigOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 

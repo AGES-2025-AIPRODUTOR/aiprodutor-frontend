@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sheet';
 import { Filter, X } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
-import Dropdown from '../gerenciamentoArea/cadastroArea/dropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   getAllHistory,
   HarvestHistoryFilters,
@@ -46,10 +46,7 @@ const Page = () => {
   const router = useRouter();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [searchValue, setSearchValue] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<{ selected: string; open: boolean }>({
-    selected: '',
-    open: false,
-  });
+  const [statusFilter, setStatusFilter] = useState<string>('');
   const [safraInitialDate, setSafraInitialDate] = useState<string>('');
   const [safraEndDate, setSafraEndDate] = useState<string>('');
   const [appliedFilters, setAppliedFilters] = useState<HarvestHistoryFilters>({});
@@ -157,11 +154,17 @@ const Page = () => {
               {/* STATUS */}
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Dropdown
-                  options={['Todos', 'Concluído', 'Em Andamento', 'Desativado']}
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="Concluído">Concluído</SelectItem>
+                    <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                    <SelectItem value="Desativado">Desativado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* DATA INICIAL */}
@@ -197,7 +200,7 @@ const Page = () => {
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  setStatusFilter({ selected: '', open: false });
+                  setStatusFilter('');
                   setSafraInitialDate('');
                   setSafraEndDate('');
                   setAppliedFilters({});
@@ -210,13 +213,13 @@ const Page = () => {
                 onClick={() => {
                   const filters: HarvestHistoryFilters = {};
 
-                  if (statusFilter.selected && statusFilter.selected !== 'Todos') {
+                  if (statusFilter && statusFilter !== 'Todos') {
                     const statusMap: Record<string, string> = {
                       Concluído: 'completed',
                       'Em Andamento': 'in_progress',
                       Desativado: 'cancelled',
                     };
-                    filters.status = statusMap[statusFilter.selected];
+                    filters.status = statusMap[statusFilter];
                   }
 
                   if (safraInitialDate) filters.safraInitialDate = safraInitialDate;

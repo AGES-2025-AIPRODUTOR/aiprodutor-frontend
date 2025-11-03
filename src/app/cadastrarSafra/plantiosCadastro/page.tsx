@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import SafraSteps from '@/app/cadastrarSafra/components/SafraSteps';
@@ -292,37 +293,43 @@ export default function PlantiosPage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Produto *</label>
-          <select
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            value={productId}
-            onChange={(e) => setProductId(e.target.value ? Number(e.target.value) : '')}
+          <Select
+            value={productId ? String(productId) : ''}
+            onValueChange={(value) => setProductId(value ? Number(value) : '')}
             disabled={productsLoading}
           >
-            <option value="">Selecione…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              {products.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {productsError && <p className="mt-1 text-xs text-red-600">{productsError}</p>}
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Variedade *</label>
-          <select
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            value={varietyId}
-            onChange={(e) => setVarietyId(e.target.value ? Number(e.target.value) : '')}
+          <Select
+            value={varietyId ? String(varietyId) : ''}
+            onValueChange={(value) => setVarietyId(value ? Number(value) : '')}
             disabled={varietiesLoading || productId === ''}
           >
-            <option value="">Selecione…</option>
-            {varieties.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              {varieties.map((v) => (
+                <SelectItem key={v.id} value={String(v.id)}>
+                  {v.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {varietiesError && <p className="mt-1 text-xs text-red-600">{varietiesError}</p>}
         </div>
       </div>
