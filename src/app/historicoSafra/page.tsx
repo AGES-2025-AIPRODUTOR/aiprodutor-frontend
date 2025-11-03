@@ -15,7 +15,13 @@ import {
 } from '@/components/ui/sheet';
 import { Filter, X } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   getAllHistory,
   HarvestHistoryFilters,
@@ -130,7 +136,7 @@ const Page = () => {
 
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
-              <Button
+            <Button
               className="px-3 py-2 text-white font-medium rounded-lg flex items-center gap-2 relative"
               style={{ fontSize: '11px' }}
             >
@@ -159,7 +165,6 @@ const Page = () => {
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
                     <SelectItem value="Concluído">Concluído</SelectItem>
                     <SelectItem value="Em Andamento">Em Andamento</SelectItem>
                     <SelectItem value="Desativado">Desativado</SelectItem>
@@ -213,7 +218,7 @@ const Page = () => {
                 onClick={() => {
                   const filters: HarvestHistoryFilters = {};
 
-                  if (statusFilter && statusFilter !== 'Todos') {
+                  if (statusFilter) {
                     const statusMap: Record<string, string> = {
                       Concluído: 'completed',
                       'Em Andamento': 'in_progress',
@@ -253,7 +258,7 @@ const Page = () => {
                   size="icon"
                   onClick={() => {
                     if (filter.label === 'Status') {
-                      setStatusFilter({ selected: '', open: false });
+                      setStatusFilter('');
                       const newFilters = { ...appliedFilters };
                       delete newFilters.status;
                       setAppliedFilters(newFilters);
@@ -280,7 +285,7 @@ const Page = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setStatusFilter({ selected: '', open: false });
+                  setStatusFilter('');
                   setSafraInitialDate('');
                   setSafraEndDate('');
                   setAppliedFilters({});
