@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/MapAreaViewer/index.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Carousel,
@@ -21,7 +20,6 @@ import {
   getAllAreas,
   AreasEntity,
 } from '@/service/areas';
-import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import { geojsonToPaths, rgbToHex, pathsToBounds, LatLng } from '@/utils/geo';
 import Loading from '@/components/Loading';
 
@@ -36,9 +34,11 @@ interface MapAreaViewerProps {
 type DrawArea = {
   id: number;
   name?: string;
-  color?: string; // #hex
+  color?: string;
   paths: LatLng[][];
 };
+
+const PRODUCER_ID = 1; // ✅ produtor padrão
 
 export default function MapAreaViewer({
   selectedAreaId,
@@ -53,9 +53,7 @@ export default function MapAreaViewer({
   const [irrigationTypeName, setIrrigationTypeName] = useState('');
   const [loading, setLoading] = useState(true);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const { data } = useAgriculturalProducerContext();
 
-  // refs para mapa e polígonos
   const mapRef = useRef<google.maps.Map | null>(null);
   const polygonsRef = useRef<Record<number, google.maps.Polygon[]>>({});
   const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
@@ -63,25 +61,137 @@ export default function MapAreaViewer({
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const carouselWrapperRef = useRef<HTMLDivElement | null>(null);
 
+  const defaultCenter = { lat: -30.0346, lng: -51.2177 };
   const firstPoint = selectedArea?.polygon
-    ? geojsonToPaths(selectedArea.polygon)[0]?.[0] // primeiro ponto do outer ring do 1º polígono
+    ? geojsonToPaths(selectedArea.polygon)[0]?.[0]
     : undefined;
 
-  // 1) Carrega todas as áreas
+  /** ---------- helpers ---------- */
+  const clearMapArtifacts = useCallback(() => {
+    for (const list of Object.values(polygonsRef.current)) {
+      for (const p of list) p.setMap(null);
+    }
+    polygonsRef.current = {};
+    for (const l of listenersRef.current) l.remove();
+    listenersRef.current = [];
+  }, []);
+
+  const buildPolygonsForArea = useCallback((map: google.maps.Map, da: DrawArea) => {
+    const fill = da.color ?? '#2E86DE';
+    const list: google.maps.Polygon[] = [];
+
+    for (const path of da.paths) {
+      const poly = new google.maps.Polygon({
+        map,
+        paths: path,
+        clickable: true,
+        geodesic: false,
+        strokeColor: fill,
+        strokeOpacity: 0.9,
+        strokeWeight: 1,
+        fillColor: fill,
+        fillOpacity: 0.25,
+        zIndex: 1,
+      });
+      list.push(poly);
+    }
+    polygonsRef.current[da.id] = list;
+    return list;
+  }, []);
+
+  const handlePolygonClick = useCallback((area: AreasEntity) => {
+    setSelectedArea(area);
+    setIsDrawerVisible(true);
+
+    if (area.soilTypeId) {
+      getSoilTypeById(area.soilTypeId).then(({ isSuccess, response }) => {
+        if (isSuccess && response) setSoilTypeName(response.name);
+      });
+    }
+    if (area.irrigationTypeId) {
+      getIrrigationTypeById(area.irrigationTypeId).then(({ isSuccess, response }) => {
+        if (isSuccess && response) setIrrigationTypeName(response.name);
+      });
+    }
+  }, []);
+
+  const attachClickListeners = useCallback(
+    (areaId: number, areasAll: AreasEntity[]) => {
+      const list = polygonsRef.current[areaId] ?? [];
+      for (const poly of list) {
+        const l = poly.addListener('click', () => {
+          const area = areasAll.find((x) => x.id === areaId);
+          if (area) handlePolygonClick(area);
+        });
+        listenersRef.current.push(l);
+      }
+    },
+    [handlePolygonClick]
+  );
+
+  const applySelectedStyles = useCallback((selectedId: number) => {
+    for (const [idStr, list] of Object.entries(polygonsRef.current)) {
+      const isSel = Number(idStr) === selectedId;
+      for (const poly of list) {
+        poly.setOptions({
+          fillOpacity: isSel ? 0.45 : 0.25,
+          strokeColor: isSel ? '#000000' : (poly.get('fillColor') ?? '#2E86DE'),
+          strokeWeight: isSel ? 2 : 1,
+          zIndex: isSel ? 10 : 1,
+        });
+      }
+    }
+  }, []);
+
+  const fitSelected = useCallback((selectedId: number, bottomPadding = 48) => {
+    const list = polygonsRef.current[selectedId];
+    if (!list?.length || !mapRef.current) return;
+
+    const allPaths: LatLng[][] = [];
+    for (const poly of list) {
+      const path = poly.getPath();
+      const arr: LatLng[] = [];
+      for (let i = 0; i < path.getLength(); i++) {
+        const pt = path.getAt(i);
+        arr.push({ lat: pt.lat(), lng: pt.lng() });
+      }
+      allPaths.push(arr);
+    }
+
+    const b = pathsToBounds(allPaths);
+    if (!b.isEmpty())
+      mapRef.current.fitBounds(b, { top: 48, right: 48, bottom: bottomPadding, left: 48 });
+  }, []);
+
+  const getBottomPadding = useCallback(() => {
+    if (isDrawerVisible && drawerRef.current) {
+      const h = Math.round(drawerRef.current.getBoundingClientRect().height || 0);
+      return Math.min(Math.max(h + 24, 80), 600);
+    }
+    if (!isDrawerVisible && carouselWrapperRef.current) {
+      const h = Math.round(carouselWrapperRef.current.getBoundingClientRect().height || 0) + 24;
+      return Math.min(Math.max(h, 80), 400);
+    }
+    return 48;
+  }, [isDrawerVisible]);
+
+  /** ---------- efeitos ---------- */
+
+  // 1) Carrega áreas
   useEffect(() => {
     (async () => {
       try {
-        const { isSuccess, response } = await getAllAreas(data.id ?? 1);
+        const { isSuccess, response } = await getAllAreas(PRODUCER_ID);
         if (isSuccess && response) setAreas(response);
       } catch (err) {
-        console.error('Erro ao buscar todas as áreas:', err);
+        console.error('Erro ao buscar áreas:', err);
       } finally {
         setLoading(false);
       }
     })();
-  }, [data.id]);
+  }, []);
 
-  // 2) Se veio selectedAreaId (rota), busca ela
+  // 2) Busca área selecionada
   useEffect(() => {
     if (!selectedAreaId) return;
     setLoading(true);
@@ -90,14 +200,14 @@ export default function MapAreaViewer({
         const { isSuccess, response } = await getAreaById(selectedAreaId);
         if (isSuccess && response) setSelectedArea(response);
       } catch (err) {
-        console.error('Erro ao buscar dados da área selecionada:', err);
+        console.error('Erro ao buscar área:', err);
       } finally {
         setLoading(false);
       }
     })();
   }, [selectedAreaId]);
 
-  // 3) Busca nomes dos tipos
+  // 3) Busca nomes de tipos
   useEffect(() => {
     (async () => {
       try {
@@ -115,7 +225,7 @@ export default function MapAreaViewer({
     })();
   }, [soilTypeId, irrigationTypeId]);
 
-  // 4) Abre drawer quando selecionada via rota
+  // 4) Abre drawer quando vem via rota
   useEffect(() => {
     if (selectedAreaId && !loading) {
       const t = setTimeout(() => setIsDrawerVisible(true), 300);
@@ -123,113 +233,55 @@ export default function MapAreaViewer({
     }
   }, [selectedAreaId, loading]);
 
-  const defaultCenter = { lat: -30.0346, lng: -51.2177 };
-
-  // 5) Monta as áreas desenháveis (paths + cor)
+  // 5) Monta as áreas desenháveis
   const drawAreas: DrawArea[] = useMemo(() => {
     return areas
       .map((a) => {
         const paths = geojsonToPaths(a.polygon);
         if (!paths.length) return null;
-        // ajuste o nome do campo de cor se for diferente
         const color = rgbToHex((a as any).color);
         return { id: a.id, name: a.name, color, paths };
       })
       .filter(Boolean) as DrawArea[];
   }, [areas]);
 
-  // 6) Desenhar polígonos no mapa quando mapa pronto OU drawAreas muda
+  // 6) Desenha polígonos no mapa
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // limpa polígonos/listeners anteriores
-    Object.values(polygonsRef.current)
-      .flat()
-      .forEach((p) => p.setMap(null));
-    polygonsRef.current = {};
-    listenersRef.current.forEach((l) => l.remove());
-    listenersRef.current = [];
+    clearMapArtifacts();
 
-    // cria novos polígonos
-    drawAreas.forEach((da) => {
-      const fill = da.color ?? '#2E86DE';
-      const polyList: google.maps.Polygon[] = [];
+    for (const da of drawAreas) {
+      buildPolygonsForArea(map, da);
+      attachClickListeners(da.id, areas);
+    }
 
-      da.paths.forEach((path) => {
-        const poly = new google.maps.Polygon({
-          map,
-          paths: path,
-          clickable: true,
-          geodesic: false,
-          strokeColor: fill,
-          strokeOpacity: 0.9,
-          strokeWeight: 1,
-          fillColor: fill,
-          fillOpacity: 0.25, // normal
-          zIndex: 1,
-        });
-        polyList.push(poly);
-
-        // clique → selecionar/editar
-        const listener = poly.addListener('click', () => {
-          const area = areas.find((x) => x.id === da.id);
-          if (area) handleAreaClick(area);
-        });
-        listenersRef.current.push(listener);
-      });
-
-      polygonsRef.current[da.id] = polyList;
-    });
-
-    // se já existe uma área selecionada, aplicar destaque e enfocar
     if (selectedArea) {
       applySelectedStyles(selectedArea.id);
       fitSelected(selectedArea.id);
     }
-  }, [mapRef.current, drawAreas]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapRef.current, drawAreas, areas, selectedArea, clearMapArtifacts, buildPolygonsForArea, attachClickListeners, applySelectedStyles, fitSelected]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // calcula padding inferior conforme drawer ou carousel visíveis
-  function getBottomPadding() {
-    // se drawer visível, utiliza a altura do drawer para levantar o mapa
-    if (isDrawerVisible && drawerRef.current) {
-      const h = Math.round(drawerRef.current.getBoundingClientRect().height || 0);
-      return Math.min(Math.max(h + 24, 80), 600); // entre 80 e 600 px
-    }
-    // se carousel visível, evita que o carousel esconda a área
-    if (!isDrawerVisible && carouselWrapperRef.current) {
-      const h = Math.round(carouselWrapperRef.current.getBoundingClientRect().height || 0) + 24;
-      return Math.min(Math.max(h, 80), 400);
-    }
-    return 48;
-  }
-
-  // 7) Ao mudar área selecionada → destacar e fitBounds (com padding dependendo do drawer)
+  // 7) Atualiza foco quando muda drawer/seleção
   useEffect(() => {
     if (!mapRef.current || !selectedArea) return;
     applySelectedStyles(selectedArea.id);
     const padding = getBottomPadding();
     const t = setTimeout(() => fitSelected(selectedArea.id, padding), 250);
     return () => clearTimeout(t);
-  }, [selectedArea?.id, isDrawerVisible]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedArea?.id, isDrawerVisible, applySelectedStyles, fitSelected, getBottomPadding]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 8) Quando o carousel muda de slide, focar no mapa na área correspondente (sem abrir drawer)
+  // 8) Carousel muda → focar no mapa
   useEffect(() => {
     if (!carouselApi) return;
+
     const onSelect = () => {
-      try {
-        const idx = carouselApi.selectedScrollSnap();
-        const area = areas[idx];
-        if (area) {
-          // apenas focar, sem abrir drawer
-          const padding = getBottomPadding();
-          fitSelected(area.id, padding);
-        }
-      } catch (err) {
-        // ignore
-      }
+      const idx = carouselApi.selectedScrollSnap();
+      const area = areas[idx];
+      if (area) fitSelected(area.id, getBottomPadding());
     };
-    // chamar uma vez para centrar no slide inicial
+
     onSelect();
     carouselApi.on('select', onSelect);
     carouselApi.on('reInit', onSelect);
@@ -237,60 +289,8 @@ export default function MapAreaViewer({
       carouselApi.off('select', onSelect);
       carouselApi.off('reInit', onSelect);
     };
-  }, [carouselApi, areas, isDrawerVisible]);
+  }, [carouselApi, areas, getBottomPadding, fitSelected]);
 
-  function applySelectedStyles(selectedId: number) {
-    // reset visual de todas
-    Object.entries(polygonsRef.current).forEach(([id, list]) => {
-      const isSel = Number(id) === selectedId;
-      list.forEach((poly) => {
-        poly.setOptions({
-          fillOpacity: isSel ? 0.45 : 0.25,
-          strokeColor: isSel ? '#000000' : (poly.get('fillColor') ?? '#2E86DE'),
-          strokeWeight: isSel ? 2 : 1,
-          zIndex: isSel ? 10 : 1,
-        });
-      });
-    });
-  }
-
-  function fitSelected(selectedId: number, bottomPadding = 48) {
-    const list = polygonsRef.current[selectedId];
-    if (!list || !list.length || !mapRef.current) return;
-
-    const allPaths: LatLng[][] = [];
-    list.forEach((poly) => {
-      const path = poly.getPath();
-      const arr: LatLng[] = [];
-      for (let i = 0; i < path.getLength(); i++) {
-        const pt = path.getAt(i);
-        arr.push({ lat: pt.lat(), lng: pt.lng() });
-      }
-      allPaths.push(arr);
-    });
-
-    const b = pathsToBounds(allPaths);
-    if (!b.isEmpty())
-      mapRef.current.fitBounds(b, { top: 48, right: 48, bottom: bottomPadding, left: 48 });
-  }
-
-  const handleAreaClick = (area: AreasEntity) => {
-    setSelectedArea(area);
-    setIsDrawerVisible(true);
-
-    if (area.soilTypeId) {
-      getSoilTypeById(area.soilTypeId).then(({ isSuccess, response }) => {
-        if (isSuccess && response) setSoilTypeName(response.name);
-      });
-    }
-    if (area.irrigationTypeId) {
-      getIrrigationTypeById(area.irrigationTypeId).then(({ isSuccess, response }) => {
-        if (isSuccess && response) setIrrigationTypeName(response.name);
-      });
-    }
-  };
-
-  // center/zoom apenas como fallback visual inicial (o fitBounds cuida do foco)
   const center = firstPoint ?? defaultCenter;
   const zoom = selectedArea ? 15 : 12;
 
@@ -304,9 +304,6 @@ export default function MapAreaViewer({
             </div>
           )}
           {selectedArea && <GoogleMapWrapper center={defaultCenter} zoom={12} height="100%" />}
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 lg:top-8">
-            <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-100 mx-4 backdrop-blur-sm"></div>
-          </div>
         </div>
       </div>
     );
@@ -319,21 +316,15 @@ export default function MapAreaViewer({
           center={center}
           zoom={zoom}
           height="100%"
-          // pega a instância do mapa para desenhar os polígonos
           onReady={(m) => {
             mapRef.current = m;
           }}
         />
 
         <div className="absolute top-4 left-4 z-20">
-          <Button
-            onClick={onBack}
-          >
-            Voltar
-          </Button>
+          <Button onClick={onBack}>Voltar</Button>
         </div>
 
-        {/* Carrossel flutuante inferior para selecionar via nome (substitui lista lateral) */}
         {!selectedAreaId && !isDrawerVisible && (
           <div
             ref={carouselWrapperRef}
@@ -358,7 +349,7 @@ export default function MapAreaViewer({
                             size="sm"
                             variant="default"
                             className="bg-green-600"
-                            onClick={() => handleAreaClick(area)}
+                            onClick={() => handlePolygonClick(area)}
                           >
                             Editar
                           </Button>
@@ -377,14 +368,9 @@ export default function MapAreaViewer({
 
       {(selectedAreaId || selectedArea) && (
         <div
-          className={`
-            overflow-y-auto p-2 
-            absolute bottom-0 left-0 right-0 
-            bg-white rounded-t-2xl
-            transition-transform duration-500 ease-out
-            ${isDrawerVisible ? 'transform translate-y-0' : 'transform translate-y-full'}
-            lg:relative lg:translate-y-0 lg:w-96 lg:rounded-none lg:border-l lg:border-gray-200
-          `}
+          className={`overflow-y-auto p-2 absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl transition-transform duration-500 ease-out ${
+            isDrawerVisible ? 'translate-y-0' : 'translate-y-full'
+          } lg:relative lg:translate-y-0 lg:w-96 lg:rounded-none lg:border-l lg:border-gray-200`}
           ref={drawerRef}
         >
           <EditAreaForm
@@ -393,9 +379,7 @@ export default function MapAreaViewer({
             soilTypeName={soilTypeName}
             irrigationTypeName={irrigationTypeName}
             refetch={refetch}
-            onClose={() => {
-              setIsDrawerVisible(false);
-            }}
+            onClose={() => setIsDrawerVisible(false)}
           />
         </div>
       )}
