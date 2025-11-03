@@ -34,6 +34,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
@@ -238,7 +239,7 @@ export default function PlantiosPage() {
       const { isSuccess, errorMessage } = await createSafra(payload);
       if (!isSuccess) {
         setSalvando(false);
-        alert(errorMessage || 'Não foi possível salvar a safra.');
+        toast.error(errorMessage || 'Não foi possível salvar a safra.');
         return;
       }
 
@@ -247,7 +248,7 @@ export default function PlantiosPage() {
       router.replace('/controleSafra');
     } catch {
       setSalvando(false);
-      alert('Erro inesperado ao salvar.');
+      toast.error('Erro inesperado ao salvar.');
     }
   };
 
@@ -444,7 +445,7 @@ export default function PlantiosPage() {
                 <div className="font-medium">{p.name}</div>
                 <div>Produto: {productNameOf(p.productId)}</div>
                 <div>Variedade: {varietyNameOf(p.varietyId)}</div>
-                <div>Data de início: {p.plantingDate?? '—'}</div>
+                <div>Data de início: {p.plantingDate ?? '—'}</div>
                 <div>Data Final: {p.expectedHarvestDate ?? '—'}</div>
                 <div>Quantidade: {p.quantityPlanted?.toLocaleString('pt-BR')} kg</div>
                 <div>
