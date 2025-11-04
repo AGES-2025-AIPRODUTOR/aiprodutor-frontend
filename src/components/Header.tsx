@@ -14,8 +14,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* seletor de produtor */}
-          <ProducerSwitcher />
+
           {/* AI Produtor (link para Home) */}
           <Link href="/" aria-label="Ir para a Home — AI Produtor" className="inline-flex items-center">
             <Image src={LOGOS.aiProdutor} alt="AI Produtor" width={120} height={24} draggable={false} />
