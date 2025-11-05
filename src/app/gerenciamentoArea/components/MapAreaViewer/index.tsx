@@ -261,7 +261,17 @@ export default function MapAreaViewer({
       applySelectedStyles(selectedArea.id);
       fitSelected(selectedArea.id);
     }
-  }, [mapRef.current, drawAreas, areas, selectedArea, clearMapArtifacts, buildPolygonsForArea, attachClickListeners, applySelectedStyles, fitSelected]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    mapRef.current,
+    drawAreas,
+    areas,
+    selectedArea,
+    clearMapArtifacts,
+    buildPolygonsForArea,
+    attachClickListeners,
+    applySelectedStyles,
+    fitSelected,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 7) Atualiza foco quando muda drawer/seleção
   useEffect(() => {
@@ -325,7 +335,8 @@ export default function MapAreaViewer({
           <Button onClick={onBack}>Voltar</Button>
         </div>
 
-        {!selectedAreaId && !isDrawerVisible && (
+        {/* Carrossel flutuante inferior para selecionar via nome (substitui lista lateral) */}
+        {!isDrawerVisible && (
           <div
             ref={carouselWrapperRef}
             className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-30 w-[75%] max-w-4xl"
