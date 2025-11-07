@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/cadastrarSafra/safraEditar/page.tsx
 'use client';
 
@@ -51,8 +52,8 @@ function EditarSafraContent() {
         return;
       }
       setNome(response.nome);
-      setInicio(response.inicio); // já vem como YYYY-MM-DD pelo adapter
-      setFim(response.fim); // idem
+      setInicio(response.inicio); // já vem YYYY-MM-DD
+      setFim(response.fim);
       setAreas(response.areas || []);
       setPlantios(response.plantios || []);
       setLoading(false);
@@ -62,22 +63,24 @@ function EditarSafraContent() {
     };
   }, [safraId]);
 
-  const podeSalvar = nome.trim() && inicio && fim;
+  const podeSalvar = !!nome.trim() && !!inicio && !!fim;
 
   const onSalvar = async () => {
     if (!podeSalvar) return;
 
-    // ⚙️ Payload no formato da API (adapter no service espera isto)
+    // ⚙️ Atualização: NÃO enviar areaIds no PATCH
     const body = {
       name: nome.trim(),
       startDate: inicio,
       endDate: fim,
-      areaIds: areas.map((a) => a.id),
     };
 
-    const { isSuccess, errorMessage } = await updateSafra(safraId, body);
-    if (isSuccess)     router.push(`/controleSafra`);
-    else toast.error(errorMessage || 'Falha ao salvar');
+    const { isSuccess, errorMessage } = await updateSafra(safraId, body as any);
+    if (isSuccess) {
+      router.push(`/controleSafra`);
+    } else {
+      toast.error(errorMessage || 'Falha ao salvar');
+    }
   };
 
   const onConfirmAreas = (novas: AreasEntity[]) => {
@@ -135,7 +138,7 @@ function EditarSafraContent() {
         />
       </div>
 
-      {/* Áreas */}
+      {/* Áreas (apenas para controle da UI nesta tela) */}
       <div className="mb-2">
         <div className="mb-1 flex items-end justify-between">
           <label className="block text-sm font-medium text-gray-700">Áreas</label>
@@ -170,19 +173,14 @@ function EditarSafraContent() {
 
       {/* Ações */}
       <div className="mt-6">
-        <Button
-          className="w-full"
-          onClick={onSalvar}
-          disabled={!podeSalvar}
-        >
+        <Button className="w-full" onClick={onSalvar} disabled={!podeSalvar}>
           Salvar
         </Button>
       </div>
 
       {/* Modal áreas */}
       <AreaListModal
-        // TODO: trocar por producerId real (contexto/autenticação)
-        producerId={0}
+        producerId={1} // produtor fixo = 1
         isOpen={abrirAreas}
         onClose={() => setAbrirAreas(false)}
         onConfirm={onConfirmAreas}

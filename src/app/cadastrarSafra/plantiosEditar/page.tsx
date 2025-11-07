@@ -57,9 +57,8 @@ function EditarPlantioContent() {
   const [qtdColhidaTxt, setQtdColhidaTxt] = useState(''); // quantityHarvested (string com " kg")
   const [produtividadeTxt, setProdutividadeTxt] = useState(''); // expectedYield (number)
 
-  // manter product/variety do back (se não editar aqui)
+  // manter product/ do back (se não editar aqui)
   const [origProductId, setOrigProductId] = useState<number | null>(null);
-  const [origVarietyId, setOrigVarietyId] = useState<number | null>(null);
 
   // Áreas apenas para referência/UX (não vai no PATCH novo)
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
@@ -112,7 +111,6 @@ function EditarPlantioContent() {
       );
 
       setOrigProductId(p.productId ?? null);
-      setOrigVarietyId(p.varietyId ?? null);
 
       // API pode retornar p.areas; mostramos apenas as que pertencem à safra
       const idsSelecionadas = new Set((p as any).areas?.map((a: { id: number }) => a.id) ?? []);
@@ -145,7 +143,6 @@ function EditarPlantioContent() {
       quantityPlanted: parseKg(qtdTxt) ?? 0,
       quantityHarvested: parseKg(qtdColhidaTxt) ?? null,
       productId: origProductId,            // preservado (se não edita aqui)
-      varietyId: origVarietyId,            // preservado
       expectedYield: produtividadeTxt ? Number(produtividadeTxt) : null,
     };
 

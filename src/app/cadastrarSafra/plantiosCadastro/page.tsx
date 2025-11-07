@@ -17,10 +17,10 @@ import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerCo
 import type { AreasEntity } from '@/service/areas';
 import { Input } from '@/components/ui/input';
 import { createSafra } from '@/service/safras';
+import type { CreateSafraDTO, CreatePlantingDTO } from '@/service/safras';
 
-// Produtos / Variedades
+// Produtos (sem variedade)
 import { getProducts, type Product } from '@/service/products';
-import { getVarietiesByProduct, type Variety } from '@/service/varieties';
 
 // usa o mesmo modal da tela de safra
 import AreaListModal from '../components/areasList/AreaList';
@@ -52,31 +52,26 @@ export default function PlantiosPage() {
   const queryClient = useQueryClient();
   const { draft, addPlantio, removePlantio, reset } = useSafraWizard();
   const { data: producer } = useAgriculturalProducerContext();
-  const producerId = producer?.id ?? 1;
+  const producerId = producer?.id ?? 1; // default = 1
 
   const [mounted, setMounted] = useState(false);
   const [salvando, setSalvando] = useState(false);
   useEffect(() => setMounted(true), []);
 
   // Form do plantio atual
-  const [plantioNome, setPlantioNome] = useState(''); // NEW: nome do plantio
+  const [plantioNome, setPlantioNome] = useState(''); // nome do plantio
   const [inicio, setInicio] = useState<string>('');
   const [fim, setFim] = useState<string>('');
   const [qtdTxt, setQtdTxt] = useState('');
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
   const [abrirModalAreas, setAbrirModalAreas] = useState(false);
 
-  // Produtos / Variedades
+  // Produtos (sem variedade)
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
 
   const [productId, setProductId] = useState<number | ''>('');
-  const [varietyId, setVarietyId] = useState<number | ''>('');
-
-  const [varieties, setVarieties] = useState<Variety[]>([]);
-  const [varietiesLoading, setVarietiesLoading] = useState(false);
-  const [varietiesError, setVarietiesError] = useState<string | null>(null);
 
   // Subconjunto permitido = áreas da safra
   const allowedAreas = draft?.areas ?? [];
@@ -87,25 +82,25 @@ export default function PlantiosPage() {
   // lookup para nomes (sumário bonitinho)
   const productNameOf = (id?: number | '') =>
     id ? (products.find((p) => p.id === id)?.name ?? `#${id}`) : '—';
-  const varietyNameOf = (id?: number | '') =>
-    id ? (varieties.find((v) => v.id === id)?.name ?? `#${id}`) : '—';
+
   const areaNameMap = useMemo(
     () => new Map(allowedAreas.map((a) => [a.id, a.name] as const)),
     [allowedAreas]
   );
+
   // ====== CONFIRMAÇÃO ======
   const [showConfirm, setShowConfirm] = useState(false);
   const [plantingsPreview, setPlantingsPreview] = useState<
     {
       name: string;
       productId?: number;
-      varietyId?: number;
       plantingDate: string;
       expectedHarvestDate?: string;
       quantityPlanted: number;
       areaIds: number[];
     }[]
   >([]);
+
   useEffect(() => {
     (async () => {
       const res = await getProducts();
@@ -120,28 +115,6 @@ export default function PlantiosPage() {
   }, []);
 
   useEffect(() => {
-    if (productId === '' || productId == null) {
-      setVarieties([]);
-      setVarietyId('');
-      return;
-    }
-    setVarietiesLoading(true);
-    (async () => {
-      const res = await getVarietiesByProduct(Number(productId));
-      if (res.isSuccess) {
-        setVarieties(res.response || []);
-        setVarietiesError(null);
-        setVarietyId('');
-      } else {
-        setVarietiesError(res.errorMessage || 'Falha ao carregar variedades');
-        setVarieties([]);
-        setVarietyId('');
-      }
-      setVarietiesLoading(false);
-    })();
-  }, [productId]);
-
-  useEffect(() => {
     if (!mounted) return;
     if (invalid) router.replace('/cadastrarSafra');
   }, [mounted, invalid, router]);
@@ -153,7 +126,6 @@ export default function PlantiosPage() {
     !!inicio &&
     !!fim &&
     productId !== '' &&
-    varietyId !== '' &&
     parseKg(qtdTxt) !== null &&
     selecionadas.length > 0;
 
@@ -162,7 +134,6 @@ export default function PlantiosPage() {
     setInicio('');
     setFim('');
     setProductId('');
-    setVarietyId('');
     setQtdTxt('');
     setSelecionadas([]);
   };
@@ -172,11 +143,10 @@ export default function PlantiosPage() {
     // NOTE: acrescentei "name" no draft – ver ajuste no SafraWizard abaixo
     addPlantio({
       id: crypto.randomUUID(),
-      name: plantioNome.trim(), // NEW
+      name: plantioNome.trim(),
       inicio,
       fim,
       productId: Number(productId),
-      varietyId: Number(varietyId),
       quantidadePlantadaKg: parseKg(qtdTxt),
       areaIds: selecionadas.map((a) => a.id),
     } as any);
@@ -190,14 +160,12 @@ export default function PlantiosPage() {
       !!inicio &&
       !!fim &&
       productId !== '' &&
-      varietyId !== '' &&
       parseKg(qtdTxt) !== null &&
       selecionadas.length > 0;
 
     const mappedDraft = draft!.plantios.map((p: any) => ({
       name: p.name ?? 'Plantio', // fallback
       productId: p.productId,
-      varietyId: p.varietyId,
       plantingDate: p.inicio,
       expectedHarvestDate: p.fim,
       quantityPlanted: p.quantidadePlantadaKg ?? 0,
@@ -209,7 +177,6 @@ export default function PlantiosPage() {
           {
             name: plantioNome.trim(),
             productId: Number(productId),
-            varietyId: Number(varietyId),
             plantingDate: inicio,
             expectedHarvestDate: fim,
             quantityPlanted: parseKg(qtdTxt) ?? 0,
@@ -222,35 +189,64 @@ export default function PlantiosPage() {
     setPlantingsPreview(preview);
     setShowConfirm(true);
   };
+const salvarAgora = async () => {
+  try {
+    setSalvando(true);
 
-  const salvarAgora = async () => {
-    try {
-      setSalvando(true);
+    const plantingsComArea: CreatePlantingDTO[] = plantingsPreview
+      .map((p) => ({
+        name: p.name,
+        plantingDate: p.plantingDate,
+        expectedHarvestDate: p.expectedHarvestDate,
+        quantityPlanted: p.quantityPlanted,
+        productId: p.productId,
+        areaIds: (p.areaIds ?? [])
+          .map((id: number | string) => Number(id))
+          .filter((n) => Number.isFinite(n)),
+      }))
+      .filter((p) => p.areaIds.length > 0);
 
-      const payload = {
-        name: draft!.nome,
-        startDate: draft!.inicio,
-        endDate: draft!.fim,
-        producerId,
-        areaIds: allowedAreas.map((a) => a.id),
-        plantings: plantingsPreview,
-      };
+    const payload: CreateSafraDTO = {
+      name: draft!.nome,
+      startDate: draft!.inicio,
+      endDate: draft!.fim,
+      producerId,
+      status: 'in_progress',
+      plantings: plantingsComArea,
+    };
 
-      const { isSuccess, errorMessage } = await createSafra(payload);
-      if (!isSuccess) {
-        setSalvando(false);
-        toast.error(errorMessage || 'Não foi possível salvar a safra.');
-        return;
-      }
+    const { isSuccess, errorMessage } = await createSafra(payload);
 
-      reset();
-      queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
-      router.replace('/controleSafra');
-    } catch {
+    if (!isSuccess) {
       setSalvando(false);
-      toast.error('Erro inesperado ao salvar.');
+      toast.error(errorMessage || 'Não foi possível salvar a safra.');
+      return;
     }
-  };
+
+    // --- SUCESSO: feche modal/limpe estados ANTES de navegar ---
+    setShowConfirm(false);     // fecha o Dialog
+    reset();                   // limpa o wizard
+    await queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
+
+    // dá uma microfolga pro React aplicar o estado e então navega
+    setTimeout(() => {
+      // use replace para não voltar pro wizard
+      try {
+        router.replace('/');   // sua Home
+      } catch {
+        // fallback bruto se algo bloquear o router
+        window.location.href = '/';
+      }
+    }, 0);
+  } catch {
+    toast.error('Erro inesperado ao salvar.');
+  } finally {
+    setSalvando(false);
+  }
+};
+
+
+
 
   // ====== FIM CONFIRMAÇÃO ======
 
@@ -290,7 +286,7 @@ export default function PlantiosPage() {
         />
       </div>
 
-      {/* Produto e Variedade */}
+      {/* Produto (sem variedade) */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Produto *</label>
@@ -311,27 +307,6 @@ export default function PlantiosPage() {
             </SelectContent>
           </Select>
           {productsError && <p className="mt-1 text-xs text-red-600">{productsError}</p>}
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Variedade *</label>
-          <Select
-            value={varietyId ? String(varietyId) : ''}
-            onValueChange={(value) => setVarietyId(value ? Number(value) : '')}
-            disabled={varietiesLoading || productId === ''}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              {varieties.map((v) => (
-                <SelectItem key={v.id} value={String(v.id)}>
-                  {v.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {varietiesError && <p className="mt-1 text-xs text-red-600">{varietiesError}</p>}
         </div>
       </div>
 
@@ -414,8 +389,9 @@ export default function PlantiosPage() {
             {draft!.plantios.map((p: any) => (
               <li key={p.id} className="flex items-center justify-between">
                 <span>
-                  <strong>{p.name ?? 'Plantio'}</strong> — Prod: {p.productId} — Var: {p.varietyId}{' '}
-                  — {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg — Áreas:{' '}
+                  <strong>{p.name ?? 'Plantio'}</strong> — Prod: {p.productId}
+                  {' — '}
+                  {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg — Áreas:{' '}
                   {p.areaIds.join(', ')}
                 </span>
                 <Button variant="outline" size="sm" onClick={() => removePlantio(p.id)}>
@@ -444,13 +420,12 @@ export default function PlantiosPage() {
               <div key={i} className="rounded border p-2">
                 <div className="font-medium">{p.name}</div>
                 <div>Produto: {productNameOf(p.productId)}</div>
-                <div>Variedade: {varietyNameOf(p.varietyId)}</div>
                 <div>Data de início: {p.plantingDate ?? '—'}</div>
                 <div>Data Final: {p.expectedHarvestDate ?? '—'}</div>
                 <div>Quantidade: {p.quantityPlanted?.toLocaleString('pt-BR')} kg</div>
                 <div>
                   Áreas: {p.areaIds.map((id) => areaNameMap.get(id) ?? `#${id}`).join(', ')}
-                </div>{' '}
+                </div>
               </div>
             ))}
           </div>

@@ -8,10 +8,8 @@ export type DraftPlantio = {
   inicio: string;
   fim: string;
   quantidadePlantadaKg: number | null;
-  areaIds: number[];
   name?: string;
   productId: number;
-  varietyId: number;
 };
 export type DraftSafra = {
   nome: string;
@@ -47,9 +45,7 @@ export function SafraWizardProvider({ children }: { children: React.ReactNode })
           inicio: p.inicio,
           fim: p.fim,
           quantidadePlantadaKg: p.quantidadePlantadaKg ?? null,
-          areaIds: p.areaIds ?? [],
           productId: typeof p.productId === 'number' ? p.productId : 0,
-          varietyId: typeof p.varietyId === 'number' ? p.varietyId : 0,
         }));
       }
       return {

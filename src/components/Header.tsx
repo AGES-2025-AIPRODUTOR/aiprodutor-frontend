@@ -2,7 +2,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { LOGOS } from '../../public/brand/logos';
-import ProducerSwitcher from './ProducerSwitcher';
 
 export default function Header() {
   return (
