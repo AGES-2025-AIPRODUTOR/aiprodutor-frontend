@@ -11,6 +11,7 @@ import {
   getAllSoilTypes,
   type AreasEntity,
 } from '@/service/areas';
+import { getSafraById } from '@/service/safras';
 import AreaCardList from './AreaCardList';
 import PolygonMini from '@/components/PolygonMini';
 
@@ -22,8 +23,11 @@ type AreaListModalProps = {
   /** Modo A: lista pronta de áreas (não faz fetch) */
   areas?: AreasEntity[];
 
-  /** Modo B: busca áreas pelo produtor (se `areas` não vier) */
+  /** Modo B: busca áreas pelo produtor (fallback se não vier areas/harvestId) */
   producerId?: number;
+
+  /** Modo C: busca áreas pela safra quando informado */
+  harvestId?: number;
 
   /** Ocultar estas áreas da lista (ex.: já selecionadas) */
   excludeIds?: number[];
@@ -34,7 +38,9 @@ function formatArea(raw: unknown) {
   const val = Number(raw);
   if (!Number.isFinite(val) || val <= 0) return '—';
   if (val >= 10_000) {
-    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(val / 10_000) + ' ha';
+    return (
+      new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(val / 10_000) + ' ha'
+    );
   }
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(val) + ' m²';
 }
@@ -45,6 +51,7 @@ export default function AreaListModal({
   onConfirm,
   areas: presetAreas,
   producerId,
+  harvestId, // NOVO
   excludeIds = [],
 }: AreaListModalProps) {
   const [areas, setAreas] = useState<AreasEntity[]>([]);
@@ -69,7 +76,7 @@ export default function AreaListModal({
       setLoading(true);
       setError(null);
 
-      // carrega domínios
+      // carrega domínios (solo/irrigação)
       const [soilRes, irrRes] = await Promise.all([getAllSoilTypes(), getAllIrrigationTypes()]);
       if (!alive) return;
 
@@ -82,37 +89,66 @@ export default function AreaListModal({
         setIrrMap(map);
       }
 
-      // modo A: usa lista pronta
+      // ---------- Seleção de fonte de dados ----------
+      const excl = new Set(excludeIds);
+
+      // Modo A: usa lista pronta
       if (presetAreas && Array.isArray(presetAreas)) {
-        const excl = new Set(excludeIds);
         setAreas(presetAreas.filter((a) => !excl.has(a.id)));
         setSelectedIds([]);
         setLoading(false);
         return;
       }
 
-      // modo B: busca por produtor
-      const areasRes = await getAllAreas(producerId ?? 0);
-      if (!alive) return;
+      // Modo C: buscar áreas pela safra (harvestId)
+      if (typeof harvestId === 'number' && Number.isFinite(harvestId) && harvestId > 0) {
+        const safraRes = await getSafraById(harvestId);
+        if (!alive) return;
 
-      if (areasRes.isSuccess && areasRes.response) {
-        const excl = new Set(excludeIds);
-        setAreas((areasRes.response as AreasEntity[]).filter((a) => !excl.has(a.id)));
-        setSelectedIds([]);
-        setError(null);
-      } else {
-        setAreas([]);
-        setSelectedIds([]);
-        setError(areasRes.errorMessage || 'Erro ao carregar áreas');
+        if (safraRes.isSuccess && safraRes.response) {
+          setAreas((safraRes.response.areas ?? []).filter((a: AreasEntity) => !excl.has(a.id)));
+          setSelectedIds([]);
+          setError(null);
+        } else {
+          setAreas([]);
+          setSelectedIds([]);
+          setError(safraRes.errorMessage || 'Erro ao carregar áreas da safra');
+        }
+
+        setLoading(false);
+        return;
       }
 
+      // Modo B: buscar por produtor (fallback final)
+      if (typeof producerId === 'number' && Number.isFinite(producerId) && producerId > 0) {
+        const areasRes = await getAllAreas(producerId);
+        if (!alive) return;
+
+        if (areasRes.isSuccess && areasRes.response) {
+          setAreas((areasRes.response as AreasEntity[]).filter((a) => !excl.has(a.id)));
+          setSelectedIds([]);
+          setError(null);
+        } else {
+          setAreas([]);
+          setSelectedIds([]);
+          setError(areasRes.errorMessage || 'Erro ao carregar áreas do produtor');
+        }
+
+        setLoading(false);
+        return;
+      }
+
+      // Sem fonte disponível
+      setAreas([]);
+      setSelectedIds([]);
+      setError('Nenhuma fonte de áreas informada (areas/harvestId/producerId ausentes).');
       setLoading(false);
     })();
 
     return () => {
       alive = false;
     };
-  }, [isOpen, producerId, presetAreas, excludeKey]);
+  }, [isOpen, producerId, harvestId, presetAreas, excludeKey]);
 
   const toggleSelection = (id: number, checked: boolean) =>
     setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((i) => i !== id)));
@@ -139,11 +175,7 @@ export default function AreaListModal({
           <h2 className="text-lg font-semibold">Selecione as áreas desejadas</h2>
 
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={allChecked}
-              indeterminate={someChecked}
-              onCheckedChange={toggleAll}
-            />
+            <Checkbox checked={allChecked} indeterminate={someChecked} onCheckedChange={toggleAll} />
             {allChecked ? 'Desmarcar todas' : 'Selecionar todas'}
           </label>
         </div>
@@ -155,7 +187,10 @@ export default function AreaListModal({
           {!loading &&
             !error &&
             areas.map((area) => (
-              <div key={area.id} className="flex items-center justify-between p-3 border rounded-lg shadow-md text-gray-600 text-sm">
+              <div
+                key={area.id}
+                className="flex items-center justify-between p-3 border rounded-lg shadow-md text-gray-600 text-sm"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-[44px] h-[44px] flex items-center justify-center">
                     {area.polygon?.coordinates?.length ? (
@@ -174,8 +209,18 @@ export default function AreaListModal({
 
                   <div className="min-w-0">
                     <h1 className="font-bold text-base truncate">{area.name}</h1>
-                    <p className="truncate">Tipo de solo: {area.soilTypeId ? soilMap[area.soilTypeId] ?? `Solo #${area.soilTypeId}` : 'Não definido'}</p>
-                    <p className="truncate">Tipo de irrigação: {area.irrigationTypeId ? irrMap[area.irrigationTypeId] ?? `Irrigação #${area.irrigationTypeId}` : 'Não definido'}</p>
+                    <p className="truncate">
+                      Tipo de solo:{' '}
+                      {area.soilTypeId
+                        ? soilMap[area.soilTypeId] ?? `Solo #${area.soilTypeId}`
+                        : 'Não definido'}
+                    </p>
+                    <p className="truncate">
+                      Tipo de irrigação:{' '}
+                      {area.irrigationTypeId
+                        ? irrMap[area.irrigationTypeId] ?? `Irrigação #${area.irrigationTypeId}`
+                        : 'Não definido'}
+                    </p>
                     <p className="truncate">Tamanho: {formatArea((area as any).areaM2)}</p>
                   </div>
                 </div>
@@ -192,11 +237,7 @@ export default function AreaListModal({
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancelar
           </Button>
-          <Button
-            onClick={handleConfirm}
-            className="flex-1"
-            disabled={selectedIds.length === 0}
-          >
+          <Button onClick={handleConfirm} className="flex-1" disabled={selectedIds.length === 0}>
             Concluir
           </Button>
         </div>

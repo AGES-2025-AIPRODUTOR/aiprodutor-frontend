@@ -2,6 +2,7 @@
 import { api } from '@/lib/api';
 import { ResponseApi, handleAxiosError } from '@/lib/response';
 import type { AreasEntity } from '@/service/areas';
+import { getAllAreas } from '@/service/areas';
 
 // ===== Listagem =====
 export interface SafraListItem {
@@ -97,6 +98,14 @@ export type SafraDetalhe = {
   areas: AreasEntity[];
   plantios: PlantioEntity[];
 };
+function normalizePolygon(a: any) {
+  const poly = a?.polygon ?? a?.geometry ?? (typeof a?.polygonJson === 'string' ? JSON.parse(a.polygonJson) : null);
+  if (poly?.type === 'MultiPolygon' && Array.isArray(poly.coordinates) && poly.coordinates.length > 0) {
+    // Usa o primeiro polígono do multipolígono
+    return { type: 'Polygon', coordinates: poly.coordinates[0] };
+  }
+  return poly ?? null;
+}
 
 export async function getSafraById(id: number): Promise<ResponseApi<SafraDetalhe>> {
   try {
@@ -106,26 +115,51 @@ export async function getSafraById(id: number): Promise<ResponseApi<SafraDetalhe
       nome: data.name ?? data.nome ?? '',
       inicio: (data.startDate ?? data.harvestInitialDate ?? '').slice(0, 10),
       fim: (data.endDate ?? data.harvestEndDate ?? '').slice(0, 10),
-      areas: (data.areas ?? []).map((a: any) => ({
-        id: a.id,
-        name: a.name,
-        areaM2: a.areaM2,
-        color: a.color,
-        createdAt: a.createdAt,
-        updatedAt: a.updatedAt,
-        producerId: a.producerId,
-        soilTypeId: a.soilTypeId,
-        irrigationTypeId: a.irrigationTypeId,
-        isActive: a.isActive,
-        polygon: a.polygon,
-      })) as AreasEntity[],
+      // Une áreas do topo (se existir) com áreas vindas de cada plantio
+      areas: (() => {
+        const topAreas: any[] = Array.isArray(data.areas) ? data.areas : [];
+
+        const fromPlantings: any[] = Array.isArray(data.plantings)
+          ? data.plantings.flatMap((p: any) => (Array.isArray(p.areas) ? p.areas : []))
+          : [];
+
+        // dedup por id (preferindo o objeto mais “completo” se houver)
+        const map = new Map<number, any>();
+        [...topAreas, ...fromPlantings].forEach((a: any) => {
+          if (!a || typeof a.id !== 'number') return;
+          const prev = map.get(a.id) || {};
+          map.set(a.id, { ...prev, ...a });
+        });
+
+        return Array.from(map.values()).map((a: any) => ({
+          id: a.id,
+          name: a.name,
+          areaM2: a.areaM2,
+          color: a.color,
+          createdAt: a.createdAt,
+          updatedAt: a.updatedAt,
+          producerId: a.producerId,
+          soilTypeId: a.soilTypeId,
+          irrigationTypeId: a.irrigationTypeId,
+          isActive: a.isActive,
+          polygon: a.polygon ?? null,
+        })) as AreasEntity[];
+      })(),
+
       plantios: (data.plantings ?? []).map((p: any) => ({
         id: p.id,
-        name: p.name,
+        name:
+          typeof p.name === 'string' && p.name.trim().length > 0
+            ? p.name.trim()
+            : p.product?.name
+              ? `Plantio de ${p.product.name}`
+              : `Plantio #${p.id}`,
+
         plantingDate: p.plantingDate,
         expectedHarvestDate: p.expectedHarvestDate,
-        quantityPlanted: p.quantityPlanted,
-        productId: p.productId,
+
+        quantityPlanted: p.quantityPlanted ?? null,
+        productId: p.productId ?? p.product?.id ?? null,
       })) as PlantioEntity[],
     };
     return { isSuccess: true, response: detalhe };
@@ -134,17 +168,23 @@ export async function getSafraById(id: number): Promise<ResponseApi<SafraDetalhe
   }
 }
 
-// antes: updateSafra(id, { name, startDate, endDate, areaIds })
 export async function updateSafra(
   id: number,
-  payload: { name: string; startDate: string; endDate: string }
+  payload: {
+    name: string;
+    startDate: string;
+    endDate: string;
+    status?: 'in_progress' | 'completed' | 'cancelled';
+  }
 ): Promise<ResponseApi<void>> {
   try {
     const body = {
       name: payload.name,
       startDate: payload.startDate,
       endDate: payload.endDate,
+      status: payload.status ?? 'in_progress',
     };
+
     await api.patch(`/api/v1/harvests/${id}`, body);
     return { isSuccess: true };
   } catch (error) {

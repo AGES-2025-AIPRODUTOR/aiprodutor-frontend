@@ -11,10 +11,10 @@ import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ui/confirmDialog';
 
 import type { AreasEntity } from '@/service/areas';
 import { getSafraById } from '@/service/safras';
-
 import { getPlantioById, updatePlantio, type PlantioUpdate } from '@/service/plantios';
 import { toast } from 'sonner';
 
@@ -47,6 +47,8 @@ function EditarPlantioContent() {
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // campos do formulário (novo contrato)
   const [inicio, setInicio] = useState('');              // plantingDate (YYYY-MM-DD)
@@ -130,7 +132,7 @@ function EditarPlantioContent() {
     nomePlantio.trim().length > 0 &&
     parseKg(qtdTxt) !== null;
 
-  const onSalvar = async () => {
+  const confirmarSalvar = async () => {
     if (!podeSalvar) return;
 
     // monta payload conforme novo contrato
@@ -152,6 +154,11 @@ function EditarPlantioContent() {
     } else {
       toast.error(errorMessage || 'Falha ao salvar');
     }
+  };
+
+  const onSalvarClick = () => {
+    if (!podeSalvar) return;
+    setConfirmOpen(true);
   };
 
   if (loading) return <main className="p-6">Carregando…</main>;
@@ -256,8 +263,19 @@ function EditarPlantioContent() {
           setSelecionadas(filtradas);
           setAbrirAreas(false);
         }}
-        areas={allowedAreas}        // usa lista pronta (sem fetch)
-        excludeIds={[]}             // no editar, mostramos todas as da safra
+        areas={allowedAreas}
+        excludeIds={[]}
+      />
+
+      {/* Modal de confirmação */}
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        description={`Confirmar atualização do plantio "${nomePlantio || '—'}"?`}
+        onConfirm={async () => {
+          await confirmarSalvar();
+          setConfirmOpen(false);
+        }}
+        onCancel={() => setConfirmOpen(false)}
       />
 
       {/* Ações */}
@@ -271,7 +289,7 @@ function EditarPlantioContent() {
         </Button>
         <Button
           className="flex-1"
-          onClick={onSalvar}
+          onClick={onSalvarClick}
           disabled={!podeSalvar}
         >
           Salvar
