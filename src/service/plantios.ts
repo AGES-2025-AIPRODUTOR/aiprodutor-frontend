@@ -42,7 +42,6 @@ export type PlantioDTO = {
   expectedYield?: number | null;
   harvestId: number;
   productId?: number | null;
-  varietyId?: number | null;
 };
 
 /** Corpo aceito no PATCH /api/v1/plantings/{id} */
@@ -58,7 +57,6 @@ export type PlantioUpdate = {
   quantityPlanted?: number | null;
   quantityHarvested?: number | null;
   productId?: number | null;
-  varietyId?: number | null;
   expectedYield?: number | null;
 };
 
@@ -89,7 +87,6 @@ export async function updatePlantio(
       quantityHarvested: payload.quantityHarvested ?? null,
       harvestId: payload.harvestId,
       productId: payload.productId ?? null,
-      varietyId: payload.varietyId ?? null,
       expectedYield: payload.expectedYield ?? null,
     };
     await api.patch(`/api/v1/plantings/${id}`, body);

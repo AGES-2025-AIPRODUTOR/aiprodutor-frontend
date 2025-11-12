@@ -2,44 +2,22 @@
 import { api } from '@/lib/api';
 import { ResponseApi, handleAxiosError } from '@/lib/response';
 import type { AreasEntity } from '@/service/areas';
+import { getAllAreas } from '@/service/areas';
 
-// === Tipos usados na listagem ===
+// ===== Listagem =====
 export interface SafraListItem {
   id: number;
   name: string;
-  startDate?: string; // ISO
-  endDate?: string;   // ISO
+  startDate?: string;
+  endDate?: string;
   status: string;
   producerId: number;
 }
 
-// === Tipos do create ===
-export type CreatePlantingDTO = {
-  name: string;
-  plantingDate: string;          // "YYYY-MM-DD"
-  expectedHarvestDate?: string;  // "YYYY-MM-DD"
-  quantityPlanted: number;
-  productId?: number;
-  varietyId?: number;
-  areaIds: number[];
-};
-
-export type CreateSafraDTO = {
-  name: string;
-  producerId: number;
-  areaIds: number[];
-  startDate: string;   // "YYYY-MM-DD"
-  endDate?: string;    // "YYYY-MM-DD"
-  status?: string;     // default "Ativa"
-  plantings?: CreatePlantingDTO[];
-};
-
-// util: garante "YYYY-MM-DD" mesmo se vier ISO
+// util: se quiser garantir "YYYY-MM-DD"
 const toYmd = (v?: string) => (v ? v.slice(0, 10) : undefined);
 
-// ====================================================================
-// GET: safras em andamento por produtor
-// ====================================================================
+// ===== GET por produtor =====
 export async function getSafrasByProducer(
   producerId: number
 ): Promise<ResponseApi<SafraListItem[]>> {
@@ -59,39 +37,161 @@ export async function getSafrasByProducer(
   }
 }
 
-// ====================================================================
+// tipos do create
+export type CreatePlantingDTO = {
+  name: string;
+  plantingDate: string;
+  expectedHarvestDate?: string;
+  quantityPlanted: number;
+  productId?: number;
+  areaIds: number[];
+};
+
+export type CreateSafraDTO = {
+  name: string;
+  producerId: number;
+  startDate: string;
+  endDate?: string;
+  status?: 'in_progress' | 'completed' | 'cancelled';
+  plantings: CreatePlantingDTO[];
+};
+
 // POST: criar safra
-// ====================================================================
 export async function createSafra(payload: CreateSafraDTO): Promise<ResponseApi<any>> {
   try {
-    const body = {
+    const { data } = await api.post('/api/v1/harvests', {
       name: payload.name,
       producerId: payload.producerId,
-      areaIds: payload.areaIds,
-      startDate: toYmd(payload.startDate),
-      endDate: toYmd(payload.endDate),
-      status: payload.status ?? 'Ativa',
-      plantings: (payload.plantings ?? []).map((p) => ({
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      status: payload.status ?? 'in_progress',
+      plantings: payload.plantings.map((p) => ({
         name: p.name,
-        plantingDate: toYmd(p.plantingDate),
-        expectedHarvestDate: toYmd(p.expectedHarvestDate),
+        plantingDate: p.plantingDate,
+        expectedHarvestDate: p.expectedHarvestDate,
         quantityPlanted: p.quantityPlanted,
         productId: p.productId,
-        varietyId: p.varietyId,
-        areaIds: p.areaIds,
+        areaIds: p.areaIds, // conforme combinamos com o back
       })),
-    };
-
-    const { data } = await api.post('/api/v1/harvests', body);
+    });
     return { isSuccess: true, response: data };
+  } catch (error) {
+    return handleAxiosError(error); // retorna ResponseApi<any>
+  }
+}
+
+// ===== demais (inalterados) =====
+export type PlantioEntity = {
+  id: number;
+  name?: string | null;
+  plantingDate?: string | null;
+  expectedHarvestDate?: string | null;
+  quantityPlanted?: number | null;
+  productId?: number | null;
+};
+
+export type SafraDetalhe = {
+  id: number;
+  nome: string;
+  inicio: string;
+  fim: string;
+  areas: AreasEntity[];
+  plantios: PlantioEntity[];
+};
+function normalizePolygon(a: any) {
+  const poly = a?.polygon ?? a?.geometry ?? (typeof a?.polygonJson === 'string' ? JSON.parse(a.polygonJson) : null);
+  if (poly?.type === 'MultiPolygon' && Array.isArray(poly.coordinates) && poly.coordinates.length > 0) {
+    // Usa o primeiro polígono do multipolígono
+    return { type: 'Polygon', coordinates: poly.coordinates[0] };
+  }
+  return poly ?? null;
+}
+
+export async function getSafraById(id: number): Promise<ResponseApi<SafraDetalhe>> {
+  try {
+    const { data } = await api.get(`/api/v1/harvests/${id}`);
+    const detalhe: SafraDetalhe = {
+      id: data.id,
+      nome: data.name ?? data.nome ?? '',
+      inicio: (data.startDate ?? data.harvestInitialDate ?? '').slice(0, 10),
+      fim: (data.endDate ?? data.harvestEndDate ?? '').slice(0, 10),
+      // Une áreas do topo (se existir) com áreas vindas de cada plantio
+      areas: (() => {
+        const topAreas: any[] = Array.isArray(data.areas) ? data.areas : [];
+
+        const fromPlantings: any[] = Array.isArray(data.plantings)
+          ? data.plantings.flatMap((p: any) => (Array.isArray(p.areas) ? p.areas : []))
+          : [];
+
+        // dedup por id (preferindo o objeto mais “completo” se houver)
+        const map = new Map<number, any>();
+        [...topAreas, ...fromPlantings].forEach((a: any) => {
+          if (!a || typeof a.id !== 'number') return;
+          const prev = map.get(a.id) || {};
+          map.set(a.id, { ...prev, ...a });
+        });
+
+        return Array.from(map.values()).map((a: any) => ({
+          id: a.id,
+          name: a.name,
+          areaM2: a.areaM2,
+          color: a.color,
+          createdAt: a.createdAt,
+          updatedAt: a.updatedAt,
+          producerId: a.producerId,
+          soilTypeId: a.soilTypeId,
+          irrigationTypeId: a.irrigationTypeId,
+          isActive: a.isActive,
+          polygon: a.polygon ?? null,
+        })) as AreasEntity[];
+      })(),
+
+      plantios: (data.plantings ?? []).map((p: any) => ({
+        id: p.id,
+        name:
+          typeof p.name === 'string' && p.name.trim().length > 0
+            ? p.name.trim()
+            : p.product?.name
+              ? `Plantio de ${p.product.name}`
+              : `Plantio #${p.id}`,
+
+        plantingDate: p.plantingDate,
+        expectedHarvestDate: p.expectedHarvestDate,
+
+        quantityPlanted: p.quantityPlanted ?? null,
+        productId: p.productId ?? p.product?.id ?? null,
+      })) as PlantioEntity[],
+    };
+    return { isSuccess: true, response: detalhe };
   } catch (error) {
     return handleAxiosError(error);
   }
 }
 
-// ====================================================================
-// DELETE: remover safra
-// ====================================================================
+export async function updateSafra(
+  id: number,
+  payload: {
+    name: string;
+    startDate: string;
+    endDate: string;
+    status?: 'in_progress' | 'completed' | 'cancelled';
+  }
+): Promise<ResponseApi<void>> {
+  try {
+    const body = {
+      name: payload.name,
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      status: payload.status ?? 'in_progress',
+    };
+
+    await api.patch(`/api/v1/harvests/${id}`, body);
+    return { isSuccess: true };
+  } catch (error) {
+    return handleAxiosError(error);
+  }
+}
+
 export async function deleteSafra(id: number): Promise<ResponseApi<null>> {
   try {
     await api.delete(`/api/v1/harvests/${id}`);
@@ -101,99 +201,6 @@ export async function deleteSafra(id: number): Promise<ResponseApi<null>> {
   }
 }
 
-// ====================================================================
-// EDIT / VIEW: suporte ao fluxo de edição
-// ====================================================================
-
-// Plantio resumido exibido dentro da safra (editar safra)
-export type PlantioEntity = {
-  id: number;
-  name?: string | null;
-  plantingDate?: string | null;          // ISO
-  expectedHarvestDate?: string | null;   // ISO
-  quantityPlanted?: number | null;
-  productId?: number | null;
-  varietyId?: number | null;
-  // pode vir mais coisa do back, mantemos o essencial
-};
-
-// Safra detalhada usada na tela de edição
-export type SafraDetalhe = {
-  id: number;
-  nome: string;
-  inicio: string;          // "YYYY-MM-DD"
-  fim: string;             // "YYYY-MM-DD"
-  areas: AreasEntity[];
-  plantios: PlantioEntity[];
-};
-
-// GET /api/v1/harvests/{id}
-export async function getSafraById(id: number): Promise<ResponseApi<SafraDetalhe>> {
-  try {
-    const { data } = await api.get(`/api/v1/harvests/${id}`);
-
-    // Adaptador: normaliza os campos para o front
-    const detalhe: SafraDetalhe = {
-      id: data.id,
-      nome: data.name ?? data.nome ?? '',
-      inicio: (data.startDate ?? data.harvestInitialDate ?? '').slice(0, 10),
-      fim: (data.endDate ?? data.harvestEndDate ?? '').slice(0, 10),
-      areas: (data.areas ?? []).map((a: any) => ({
-        id: a.id,
-        name: a.name,
-        areaM2: a.areaM2,
-        color: a.color,
-        createdAt: a.createdAt,
-        updatedAt: a.updatedAt,
-        producerId: a.producerId,
-        soilTypeId: a.soilTypeId,
-        irrigationTypeId: a.irrigationTypeId,
-        isActive: a.isActive,
-        polygon: a.polygon,
-      })) as AreasEntity[],
-      plantios: (data.plantings ?? []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        plantingDate: p.plantingDate,
-        expectedHarvestDate: p.expectedHarvestDate,
-        quantityPlanted: p.quantityPlanted,
-        productId: p.productId,
-        varietyId: p.varietyId,
-      })) as PlantioEntity[],
-    };
-
-    return { isSuccess: true, response: detalhe };
-  } catch (error) {
-    return handleAxiosError(error);
-  }
-}
-
-// PATCH /api/v1/harvests/{id}
-export async function updateSafra(
-  id: number,
-  payload: {
-    name: string;
-    startDate: string;        // "YYYY-MM-DD"
-    endDate: string;          // "YYYY-MM-DD"
-    areaIds: number[];
-  }
-): Promise<ResponseApi<void>> {
-  try {
-    const body = {
-      name: payload.name,
-      startDate: toYmd(payload.startDate),
-      endDate: toYmd(payload.endDate),
-      areaIds: payload.areaIds,
-    };
-    await api.patch(`/api/v1/harvests/${id}`, body);
-    return { isSuccess: true };
-  } catch (error) {
-    return handleAxiosError(error);
-  }
-}
-
-// DELETE /api/v1/plantings/{id}  (desativar/remover plantio)
-// Se seu back usa PATCH para desativar, troque por PATCH + { isActive:false } aqui.
 export async function deactivatePlantio(plantioId: number): Promise<ResponseApi<void>> {
   try {
     await api.delete(`/api/v1/plantings/${plantioId}`);
@@ -202,24 +209,3 @@ export async function deactivatePlantio(plantioId: number): Promise<ResponseApi<
     return handleAxiosError(error);
   }
 }
-export interface SafraEntity {
-  safraId: number;
-  safraName: string;
-  safraInitialDate: string;
-  safraEndDate: string;
-}
-
-export const getAllSafras = async (producerId: number): Promise<ResponseApi<SafraEntity[]>> => {
-  try {
-    const response = await api.get<SafraEntity[]>(`/api/v1/Harvests/${producerId}/in-progress`);
-
-    return {
-      isSuccess: true,
-      response: response.data,
-    };
-  } catch (error) {
-    console.error(error);
-    return handleAxiosError(error);
-  }
-};
-

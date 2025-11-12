@@ -11,8 +11,10 @@ const AgriculturalProducerContext = createContext<AgriculturalProducerContextTyp
   undefined
 );
 
+const FORCE_ID = 1;
+
 const emptyData: AgriculturalProducerEntity = {
-  id: 0,
+  id: FORCE_ID,
   name: '',
   document: '',
   phone: '',
@@ -27,39 +29,43 @@ const emptyData: AgriculturalProducerEntity = {
 /**
  * Context Provider para dados do produtor
  *
- * CONTEXTO: Esta aplicação não possui sistema de login/autenticação.
- * Para melhorar a UX e evitar que o usuário perca dados ao fechar o navegador
- * ou navegar acidentalmente, os dados são persistidos no localStorage.
- *
- * FUNCIONALIDADES:
- * - Auto-save: Salva automaticamente no localStorage a cada mudança
- * - Auto-recovery: Recupera dados salvos ao inicializar a aplicação
- * - Estado global: Compartilha dados entre componentes via Context
+ * Por enquanto SEM multi-produtor: o ID é sempre 1.
+ * - Recupera e persiste no localStorage para manter os demais campos.
+ * - Garante ID=1 ao inicializar, ao recuperar e ao setar dados.
  */
-
 export const AgriculturalProducerProvider = ({ children }: { children: ReactNode }) => {
-  const [data, setData] = useState<AgriculturalProducerEntity>(emptyData);
+  const [data, setDataState] = useState<AgriculturalProducerEntity>(emptyData);
 
-  // Recupera dados salvos do localStorage na inicialização
-  // Importante: Como não temos login,  é o único jeito de manter dados entre sessões
+  // carrega do localStorage (forçando id=1)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('produtorData');
       if (saved) {
-        setData(JSON.parse(saved));
+        const parsed = JSON.parse(saved) as AgriculturalProducerEntity;
+        setDataState({ ...parsed, id: FORCE_ID });
       }
     } catch (err) {
       console.error('Failed to load produtorData from localStorage', err);
     }
   }, []);
 
+  // salva no localStorage (sempre com id=1)
   useEffect(() => {
     try {
-      localStorage.setItem('produtorData', JSON.stringify(data));
+      localStorage.setItem('produtorData', JSON.stringify({ ...data, id: FORCE_ID }));
     } catch (err) {
       console.error('Failed to save produtorData to localStorage', err);
     }
   }, [data]);
+
+  // setter público que SEMPRE fixa o id=1 (ignora qualquer id recebido)
+  const setData: AgriculturalProducerContextType['setData'] = (incoming) => {
+    setDataState((prev) => ({
+      ...prev,
+      ...incoming,
+      id: FORCE_ID,
+    }));
+  };
 
   return (
     <AgriculturalProducerContext.Provider value={{ data, setData }}>

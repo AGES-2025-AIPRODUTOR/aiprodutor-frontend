@@ -11,10 +11,10 @@ import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ui/confirmDialog';
 
 import type { AreasEntity } from '@/service/areas';
 import { getSafraById } from '@/service/safras';
-
 import { getPlantioById, updatePlantio, type PlantioUpdate } from '@/service/plantios';
 import { toast } from 'sonner';
 
@@ -48,6 +48,8 @@ function EditarPlantioContent() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   // campos do formulário (novo contrato)
   const [inicio, setInicio] = useState('');              // plantingDate (YYYY-MM-DD)
   const [fimPlantio, setFimPlantio] = useState('');      // plantingEndDate (YYYY-MM-DD) opcional
@@ -57,9 +59,8 @@ function EditarPlantioContent() {
   const [qtdColhidaTxt, setQtdColhidaTxt] = useState(''); // quantityHarvested (string com " kg")
   const [produtividadeTxt, setProdutividadeTxt] = useState(''); // expectedYield (number)
 
-  // manter product/variety do back (se não editar aqui)
+  // manter product/ do back (se não editar aqui)
   const [origProductId, setOrigProductId] = useState<number | null>(null);
-  const [origVarietyId, setOrigVarietyId] = useState<number | null>(null);
 
   // Áreas apenas para referência/UX (não vai no PATCH novo)
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
@@ -112,7 +113,6 @@ function EditarPlantioContent() {
       );
 
       setOrigProductId(p.productId ?? null);
-      setOrigVarietyId(p.varietyId ?? null);
 
       // API pode retornar p.areas; mostramos apenas as que pertencem à safra
       const idsSelecionadas = new Set((p as any).areas?.map((a: { id: number }) => a.id) ?? []);
@@ -132,7 +132,7 @@ function EditarPlantioContent() {
     nomePlantio.trim().length > 0 &&
     parseKg(qtdTxt) !== null;
 
-  const onSalvar = async () => {
+  const confirmarSalvar = async () => {
     if (!podeSalvar) return;
 
     // monta payload conforme novo contrato
@@ -145,7 +145,6 @@ function EditarPlantioContent() {
       quantityPlanted: parseKg(qtdTxt) ?? 0,
       quantityHarvested: parseKg(qtdColhidaTxt) ?? null,
       productId: origProductId,            // preservado (se não edita aqui)
-      varietyId: origVarietyId,            // preservado
       expectedYield: produtividadeTxt ? Number(produtividadeTxt) : null,
     };
 
@@ -155,6 +154,11 @@ function EditarPlantioContent() {
     } else {
       toast.error(errorMessage || 'Falha ao salvar');
     }
+  };
+
+  const onSalvarClick = () => {
+    if (!podeSalvar) return;
+    setConfirmOpen(true);
   };
 
   if (loading) return <main className="p-6">Carregando…</main>;
@@ -259,8 +263,19 @@ function EditarPlantioContent() {
           setSelecionadas(filtradas);
           setAbrirAreas(false);
         }}
-        areas={allowedAreas}        // usa lista pronta (sem fetch)
-        excludeIds={[]}             // no editar, mostramos todas as da safra
+        areas={allowedAreas}
+        excludeIds={[]}
+      />
+
+      {/* Modal de confirmação */}
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        description={`Confirmar atualização do plantio "${nomePlantio || '—'}"?`}
+        onConfirm={async () => {
+          await confirmarSalvar();
+          setConfirmOpen(false);
+        }}
+        onCancel={() => setConfirmOpen(false)}
       />
 
       {/* Ações */}
@@ -274,7 +289,7 @@ function EditarPlantioContent() {
         </Button>
         <Button
           className="flex-1"
-          onClick={onSalvar}
+          onClick={onSalvarClick}
           disabled={!podeSalvar}
         >
           Salvar
