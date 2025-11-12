@@ -55,9 +55,9 @@ function EditarPlantioContent() {
   const [fimPlantio, setFimPlantio] = useState('');      // plantingEndDate (YYYY-MM-DD) opcional
   const [fimColheita, setFimColheita] = useState('');    // expectedHarvestDate (YYYY-MM-DD) opcional
   const [nomePlantio, setNomePlantio] = useState('');    // name
-  const [qtdTxt, setQtdTxt] = useState('');              // quantityPlanted (string com " kg")
-  const [qtdColhidaTxt, setQtdColhidaTxt] = useState(''); // quantityHarvested (string com " kg")
-  const [produtividadeTxt, setProdutividadeTxt] = useState(''); // expectedYield (number)
+  const [qtdTxt, setQtdTxt] = useState('');              // quantityPlanted (string "… kg")
+  const [qtdColhidaTxt, setQtdColhidaTxt] = useState(''); // quantityHarvested (string "… kg")
+  const [expectedTxt, setExpectedTxt] = useState('');    // expectedYield (string "… kg") — mesmo molde
 
   // manter product/ do back (se não editar aqui)
   const [origProductId, setOrigProductId] = useState<number | null>(null);
@@ -106,9 +106,9 @@ function EditarPlantioContent() {
           ? `${(p as any).quantityHarvested} kg`
           : ''
       );
-      setProdutividadeTxt(
+      setExpectedTxt(
         (p as any).expectedYield != null && Number.isFinite((p as any).expectedYield)
-          ? String((p as any).expectedYield)
+          ? `${(p as any).expectedYield} kg`
           : ''
       );
 
@@ -145,7 +145,7 @@ function EditarPlantioContent() {
       quantityPlanted: parseKg(qtdTxt) ?? 0,
       quantityHarvested: parseKg(qtdColhidaTxt) ?? null,
       productId: origProductId,            // preservado (se não edita aqui)
-      expectedYield: produtividadeTxt ? Number(produtividadeTxt) : null,
+      expectedYield: parseKg(expectedTxt), // <<< agora usando o mesmo molde (kg)
     };
 
     const { isSuccess, errorMessage } = await updatePlantio(pid, body);
@@ -218,7 +218,7 @@ function EditarPlantioContent() {
       {/* Quantidades */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">
-          Quantidade Plantada * 
+          Quantidade Plantada *
         </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
       </div>
@@ -232,13 +232,13 @@ function EditarPlantioContent() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            Produtividade Esperada (número)
+            Produção Esperada (opcional)
           </label>
           <Input
-            type="number"
-            value={produtividadeTxt}
-            onChange={(e) => setProdutividadeTxt(e.target.value)}
-            placeholder="ex.: 800000"
+            unit="kg"
+            value={expectedTxt}
+            onChange={(e) => setExpectedTxt(e.target.value)}
+            placeholder="ex.: 1.200 kg"
           />
         </div>
       </div>
