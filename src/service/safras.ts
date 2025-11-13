@@ -43,6 +43,7 @@ export type CreatePlantingDTO = {
   plantingDate: string;
   expectedHarvestDate?: string;
   quantityPlanted: number;
+  expectedYield?: number; 
   productId?: number;
   areaIds: number[];
 };
@@ -70,6 +71,7 @@ export async function createSafra(payload: CreateSafraDTO): Promise<ResponseApi<
         plantingDate: p.plantingDate,
         expectedHarvestDate: p.expectedHarvestDate,
         quantityPlanted: p.quantityPlanted,
+        expectedYield: p.expectedYield,
         productId: p.productId,
         areaIds: p.areaIds, // conforme combinamos com o back
       })),

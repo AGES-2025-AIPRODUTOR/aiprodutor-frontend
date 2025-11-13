@@ -62,7 +62,8 @@ export default function PlantiosPage() {
   const [plantioNome, setPlantioNome] = useState(''); // nome do plantio
   const [inicio, setInicio] = useState<string>('');
   const [fim, setFim] = useState<string>('');
-  const [qtdTxt, setQtdTxt] = useState('');
+  const [qtdTxt, setQtdTxt] = useState('');           // quantidade plantada (kg)
+  const [expectedTxt, setExpectedTxt] = useState(''); // produção esperada (kg) — novo
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
   const [abrirModalAreas, setAbrirModalAreas] = useState(false);
 
@@ -97,6 +98,7 @@ export default function PlantiosPage() {
       plantingDate: string;
       expectedHarvestDate?: string;
       quantityPlanted: number;
+      expectedYield?: number | null; // novo no preview
       areaIds: number[];
     }[]
   >([]);
@@ -127,7 +129,7 @@ export default function PlantiosPage() {
     !!fim &&
     productId !== '' &&
     parseKg(qtdTxt) !== null &&
-    selecionadas.length > 0;
+    selecionadas.length > 0; // expectedYield NÃO é obrigatório
 
   const limparForm = () => {
     setPlantioNome('');
@@ -135,6 +137,7 @@ export default function PlantiosPage() {
     setFim('');
     setProductId('');
     setQtdTxt('');
+    setExpectedTxt(''); // limpa produção esperada
     setSelecionadas([]);
   };
 
@@ -148,6 +151,7 @@ export default function PlantiosPage() {
       fim,
       productId: Number(productId),
       quantidadePlantadaKg: parseKg(qtdTxt),
+      producaoEsperadaKg: parseKg(expectedTxt), // novo no draft
       areaIds: selecionadas.map((a) => a.id),
     } as any);
     limparForm();
@@ -169,6 +173,7 @@ export default function PlantiosPage() {
       plantingDate: p.inicio,
       expectedHarvestDate: p.fim,
       quantityPlanted: p.quantidadePlantadaKg ?? 0,
+      expectedYield: p.producaoEsperadaKg ?? null, // novo vindo do draft
       areaIds: p.areaIds,
     }));
 
@@ -180,6 +185,7 @@ export default function PlantiosPage() {
             plantingDate: inicio,
             expectedHarvestDate: fim,
             quantityPlanted: parseKg(qtdTxt) ?? 0,
+            expectedYield: parseKg(expectedTxt), // novo pendente
             areaIds: selecionadas.map((a) => a.id),
           },
         ]
@@ -189,64 +195,63 @@ export default function PlantiosPage() {
     setPlantingsPreview(preview);
     setShowConfirm(true);
   };
-const salvarAgora = async () => {
-  try {
-    setSalvando(true);
 
-    const plantingsComArea: CreatePlantingDTO[] = plantingsPreview
-      .map((p) => ({
-        name: p.name,
-        plantingDate: p.plantingDate,
-        expectedHarvestDate: p.expectedHarvestDate,
-        quantityPlanted: p.quantityPlanted,
-        productId: p.productId,
-        areaIds: (p.areaIds ?? [])
-          .map((id: number | string) => Number(id))
-          .filter((n) => Number.isFinite(n)),
-      }))
-      .filter((p) => p.areaIds.length > 0);
+  const salvarAgora = async () => {
+    try {
+      setSalvando(true);
 
-    const payload: CreateSafraDTO = {
-      name: draft!.nome,
-      startDate: draft!.inicio,
-      endDate: draft!.fim,
-      producerId,
-      status: 'in_progress',
-      plantings: plantingsComArea,
-    };
+      const plantingsComArea: CreatePlantingDTO[] = plantingsPreview
+        .map((p) => ({
+          name: p.name,
+          plantingDate: p.plantingDate,
+          expectedHarvestDate: p.expectedHarvestDate,
+          quantityPlanted: p.quantityPlanted,
+          expectedYield: p.expectedYield ?? undefined, // novo no payload
+          productId: p.productId,
+          areaIds: (p.areaIds ?? [])
+            .map((id: number | string) => Number(id))
+            .filter((n) => Number.isFinite(n)),
+        }))
+        .filter((p) => p.areaIds.length > 0);
 
-    const { isSuccess, errorMessage } = await createSafra(payload);
+      const payload: CreateSafraDTO = {
+        name: draft!.nome,
+        startDate: draft!.inicio,
+        endDate: draft!.fim,
+        producerId,
+        status: 'in_progress',
+        plantings: plantingsComArea,
+      };
 
-    if (!isSuccess) {
-      setSalvando(false);
-      toast.error(errorMessage || 'Não foi possível salvar a safra.');
-      return;
-    }
+      const { isSuccess, errorMessage } = await createSafra(payload);
 
-    // --- SUCESSO: feche modal/limpe estados ANTES de navegar ---
-    setShowConfirm(false);     // fecha o Dialog
-    reset();                   // limpa o wizard
-    await queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
-
-    // dá uma microfolga pro React aplicar o estado e então navega
-    setTimeout(() => {
-      // use replace para não voltar pro wizard
-      try {
-        router.replace('/');   // sua Home
-      } catch {
-        // fallback bruto se algo bloquear o router
-        window.location.href = '/';
+      if (!isSuccess) {
+        setSalvando(false);
+        toast.error(errorMessage || 'Não foi possível salvar a safra.');
+        return;
       }
-    }, 0);
-  } catch {
-    toast.error('Erro inesperado ao salvar.');
-  } finally {
-    setSalvando(false);
-  }
-};
 
+      // --- SUCESSO: feche modal/limpe estados ANTES de navegar ---
+      setShowConfirm(false);     // fecha o Dialog
+      reset();                   // limpa o wizard
+      await queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
 
-
+      // dá uma microfolga pro React aplicar o estado e então navega
+      setTimeout(() => {
+        // use replace para não voltar pro wizard
+        try {
+          router.replace('/');   // sua Home
+        } catch {
+          // fallback bruto se algo bloquear o router
+          window.location.href = '/';
+        }
+      }, 0);
+    } catch {
+      toast.error('Erro inesperado ao salvar.');
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   // ====== FIM CONFIRMAÇÃO ======
 
@@ -316,6 +321,19 @@ const salvarAgora = async () => {
           Quantidade Plantada *
         </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
+      </div>
+
+      {/* Produção esperada (novo — mesmo molde) */}
+      <div className="mb-4">
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Produção Esperada (opcional)
+        </label>
+        <Input
+          unit="kg"
+          placeholder="ex.: 1.200 kg"
+          value={expectedTxt}
+          onChange={(e) => setExpectedTxt(e.target.value)}
+        />
       </div>
 
       {/* Áreas */}
@@ -391,8 +409,9 @@ const salvarAgora = async () => {
                 <span>
                   <strong>{p.name ?? 'Plantio'}</strong> — Prod: {p.productId}
                   {' — '}
-                  {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg — Áreas:{' '}
-                  {p.areaIds.join(', ')}
+                  {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg
+                  {' — Esperada: '}
+                  {p.producaoEsperadaKg ?? '—'} kg — Áreas: {p.areaIds.join(', ')}
                 </span>
                 <Button variant="outline" size="sm" onClick={() => removePlantio(p.id)}>
                   Remover
@@ -423,6 +442,12 @@ const salvarAgora = async () => {
                 <div>Data de início: {p.plantingDate ?? '—'}</div>
                 <div>Data Final: {p.expectedHarvestDate ?? '—'}</div>
                 <div>Quantidade: {p.quantityPlanted?.toLocaleString('pt-BR')} kg</div>
+                <div>
+                  Produção esperada:{' '}
+                  {p.expectedYield != null
+                    ? `${p.expectedYield.toLocaleString('pt-BR')} kg`
+                    : '—'}
+                </div>
                 <div>
                   Áreas: {p.areaIds.map((id) => areaNameMap.get(id) ?? `#${id}`).join(', ')}
                 </div>
