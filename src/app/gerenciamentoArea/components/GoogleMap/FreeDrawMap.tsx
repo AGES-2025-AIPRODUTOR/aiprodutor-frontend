@@ -4,6 +4,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { GoogleMap, OverlayView, Polyline, Polygon, useJsApiLoader } from '@react-google-maps/api';
 import { useRouter } from 'next/navigation';
 import Loading from '@/components/Loading';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 export type LatLng = google.maps.LatLngLiteral;
 
@@ -57,7 +59,9 @@ export default function FreeDrawMap({
 
   // modal de confirmação
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pending, setPending] = useState<{ path: LatLng[]; areaM2: number; color: string } | null>(null);
+  const [pending, setPending] = useState<{ path: LatLng[]; areaM2: number; color: string } | null>(
+    null
+  );
 
   // salvar posição do mapa antes de desenhar
   const [savedMapState, setSavedMapState] = useState<{ center: LatLng; zoom: number } | null>(null);
@@ -76,6 +80,7 @@ export default function FreeDrawMap({
       fullscreenControl: false,
       mapTypeControl: false,
       streetViewControl: false,
+      mapTypeId: 'satellite',
     }),
     []
   );
@@ -89,14 +94,14 @@ export default function FreeDrawMap({
           gestureHandling: next ? 'none' : 'greedy',
           draggableCursor: next ? 'crosshair' : '',
         });
-        
+
         if (next) {
           const currentCenter = map.getCenter()?.toJSON();
           const currentZoom = map.getZoom();
           if (currentCenter && currentZoom) {
             setSavedMapState({
               center: currentCenter,
-              zoom: currentZoom
+              zoom: currentZoom,
             });
           }
         }
@@ -107,7 +112,7 @@ export default function FreeDrawMap({
       }
       return next;
     });
-  }, []);
+  }, [isDrawMode]);
 
   const projection = () => overlayRef.current?.getProjection();
 
@@ -199,9 +204,9 @@ export default function FreeDrawMap({
           closed.forEach((point) => {
             bounds.extend(new google.maps.LatLng(point.lat, point.lng));
           });
-          
+
           map.fitBounds(bounds);
-          
+
           const currentZoom = map.getZoom();
           if (currentZoom && currentZoom > 16) {
             map.setZoom(16);
@@ -232,31 +237,31 @@ export default function FreeDrawMap({
     router.push('/gerenciamentoArea/cadastroArea');
   }, [pending, router, mapCenter]);
 
-const handleDiscard = useCallback(() => {
-  setConfirmOpen(false);
-  setPending(null);
-  setPolygonPath(null);
-  setPath([]);
+  const handleDiscard = useCallback(() => {
+    setConfirmOpen(false);
+    setPending(null);
+    setPolygonPath(null);
+    setPath([]);
 
-  setIsDrawMode(false);
-  const map = mapRef.current;
-  if (map) {
-    map.setOptions({
-      gestureHandling: 'greedy',
-      draggableCursor: '', 
-    });
-    
-    if (savedMapState) {
-      map.setCenter(savedMapState.center);
-      map.setZoom(savedMapState.zoom);
-    } else {
-      map.setCenter(mapCenter);
-      map.setZoom(initialZoom);
+    setIsDrawMode(false);
+    const map = mapRef.current;
+    if (map) {
+      map.setOptions({
+        gestureHandling: 'greedy',
+        draggableCursor: '',
+      });
+
+      if (savedMapState) {
+        map.setCenter(savedMapState.center);
+        map.setZoom(savedMapState.zoom);
+      } else {
+        map.setCenter(mapCenter);
+        map.setZoom(initialZoom);
+      }
     }
-  }
-  
-  setSavedMapState(null);
-}, [mapCenter, initialZoom, savedMapState]);
+
+    setSavedMapState(null);
+  }, [mapCenter, initialZoom, savedMapState]);
 
   const handleCloseModal = useCallback(() => {
     setConfirmOpen(false);
@@ -270,28 +275,25 @@ const handleDiscard = useCallback(() => {
         map.setZoom(initialZoom);
       }
     }
-    
+
     setSavedMapState(null);
   }, [mapCenter, initialZoom, savedMapState]);
 
-  if (!isLoaded) return (
-    <div className="w-full h-screen flex items-center justify-center">
-      <Loading label="" />
-    </div>
-  );
+  if (!isLoaded)
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <Loading label="" />
+      </div>
+    );
 
   return (
     <div className="relative w-full h-[calc(100vh-64px)] flex flex-col">
       {/* Controles */}
       {!confirmOpen && (
         <div className="absolute z-10 left-4 top-4 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleDrawMode}
-            className="rounded-md px-4 py-2 bg-emerald-600 text-white shadow-md hover:opacity-90"
-          >
+          <Button type="button" onClick={toggleDrawMode} className="shadow-md">
             {isDrawMode ? 'Sair do modo desenho' : 'Desenhar área'}
-          </button>
+          </Button>
 
           {/* {isDrawMode && (
             <label className="flex items-center gap-2 bg-white/90 rounded-md px-3 py-2 shadow">
@@ -312,64 +314,67 @@ const handleDiscard = useCallback(() => {
         <GoogleMap
           onLoad={onLoadMap}
           mapContainerStyle={{ width: '100%', height: '100%' }}
-          center={mapCenter}   // ✅ centro estável
+          center={mapCenter} // ✅ centro estável
           zoom={initialZoom}
           options={mapOptions}
         >
-        {savedPolys.map((poly) => (
-          <Polygon
-            key={poly.id}
-            path={poly.path}
-            options={{
-              fillColor: poly.color ?? '#22c55e',
-              fillOpacity: 0.25,
-              strokeColor: poly.color ?? '#16a34a',
-              strokeWeight: 2,
-              clickable: false,
+          {savedPolys.map((poly) => (
+            <Polygon
+              key={poly.id}
+              path={poly.path}
+              options={{
+                fillColor: poly.color ?? '#22c55e',
+                fillOpacity: 0.25,
+                strokeColor: poly.color ?? '#16a34a',
+                strokeWeight: 2,
+                clickable: false,
+              }}
+            />
+          ))}
+
+          {path.length > 1 && (
+            <Polyline
+              path={path}
+              options={{ strokeWeight: 3, clickable: false, strokeColor: selectedColor }}
+            />
+          )}
+
+          {polygonPath && (
+            <Polygon
+              path={polygonPath}
+              options={{
+                fillOpacity: 0.2,
+                fillColor: selectedColor,
+                strokeColor: selectedColor,
+                strokeWeight: 2,
+                clickable: false,
+              }}
+            />
+          )}
+
+          {/* OverlayView só para obter a projection */}
+          <OverlayView
+            position={mapCenter}
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+            onLoad={(ov) => {
+              overlayRef.current = ov;
             }}
-          />
-        ))}
-
-        {path.length > 1 && (
-          <Polyline path={path} options={{ strokeWeight: 3, clickable: false, strokeColor: selectedColor }} />
-        )}
-
-        {polygonPath && (
-          <Polygon
-            path={polygonPath}
-            options={{
-              fillOpacity: 0.2,
-              fillColor: selectedColor,
-              strokeColor: selectedColor,
-              strokeWeight: 2,
-              clickable: false,
-            }}
-          />
-        )}
-
-        {/* OverlayView só para obter a projection */}
-        <OverlayView
-          position={mapCenter}
-          mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-          onLoad={(ov) => {
-            overlayRef.current = ov;
-          }}
-        >
-          {/* nada aqui */}
-          <div style={{ width: 0, height: 0 }} />
-        </OverlayView>
+          >
+            {/* nada aqui */}
+            <div style={{ width: 0, height: 0 }} />
+          </OverlayView>
         </GoogleMap>
       </div>
 
       {/* ⚠️ Div de captura fora do OverlayView: sempre cobre o mapa */}
       {isDrawMode && !confirmOpen && (
         <div
-          className="absolute top-0 left-0 right-0 z-10" // cobre apenas o mapa
-          style={{ 
-            pointerEvents: 'auto', 
-            touchAction: 'none', 
+          className="absolute top-0 left-0 right-0 z-5" // cobre apenas o mapa
+          style={{
+            pointerEvents: 'auto',
+            touchAction: 'none',
             cursor: 'crosshair',
-            height: confirmOpen ? '70vh' : '100%'
+            height: confirmOpen ? '70vh' : '100%',
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -383,20 +388,25 @@ const handleDiscard = useCallback(() => {
           <div className="p-4 flex flex-col min-h-full">
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Confirmar área</h2>
-              <button 
-                type="button" 
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                className="flex-shrink-0 h-8 w-8"
               >
-                ✕
-              </button>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
             <div className="flex flex-col gap-4 flex-shrink-0">
               {/* Informações da área */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="inline-block h-4 w-4 rounded flex-shrink-0" style={{ background: pending.color }} />
+                  <span
+                    className="inline-block h-4 w-4 rounded flex-shrink-0"
+                    style={{ background: pending.color }}
+                  />
                   <span className="text-sm font-medium text-gray-700">Cor selecionada</span>
                 </div>
 
@@ -410,20 +420,17 @@ const handleDiscard = useCallback(() => {
 
               {/* Botões de ação */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  type="button" 
-                  onClick={handleConfirm} 
-                  className="flex-1 rounded-lg px-4 py-3 bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors whitespace-nowrap"
-                >
+                <Button type="button" onClick={handleConfirm} className="flex-1 whitespace-nowrap">
                   Confirmar área
-                </button>
-                <button 
-                  type="button" 
-                  onClick={handleDiscard} 
-                  className="flex-1 rounded-lg px-4 py-3 bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition-colors whitespace-nowrap"
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDiscard}
+                  variant="outline"
+                  className="flex-1 whitespace-nowrap"
                 >
                   Desfazer desenho
-                </button>
+                </Button>
               </div>
             </div>
           </div>

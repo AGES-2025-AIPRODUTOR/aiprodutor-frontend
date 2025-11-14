@@ -1,25 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import type { AreasEntity } from '@/service/areas';
 
 export type DraftPlantio = {
   id: string;
-  inicio: string;                  
-  fim: string;                     
+  inicio: string;
+  fim: string;
   quantidadePlantadaKg: number | null;
-  areaIds: number[];
-  name?: string; 
+  name?: string;
   productId: number;
-  varietyId: number;
+};
+
+export type PlantioForm = {
+  plantioNome: string;
+  inicio: string;
+  fim: string;
+  qtdTxt: string;
+  expectedTxt: string;
+  productId: number | '';
+  selecionadas: AreasEntity[];
 };
 
 export type DraftSafra = {
   nome: string;
-  inicio: string;       
-  fim: string;          
+  inicio: string;
+  fim: string;
   areas: AreasEntity[];
   plantios: DraftPlantio[];
+  plantioForm?: PlantioForm;
 };
 
 const empty: DraftSafra = { nome: '', inicio: '', fim: '', areas: [], plantios: [] };
@@ -30,13 +39,14 @@ type Ctx = {
   setAreas: (areas: AreasEntity[]) => void;
   addPlantio: (p: DraftPlantio) => void;
   removePlantio: (id: string) => void;
+  setPlantioForm: (form: PlantioForm) => void;
+  clearPlantioForm: () => void;
   reset: () => void;
 };
 
 const WizardCtx = createContext<Ctx | null>(null);
 
 export function SafraWizardProvider({ children }: { children: React.ReactNode }) {
-  // carrega do sessionStorage (com MIGRAÇÃO do shape antigo)
   const [draft, setDraft] = useState<DraftSafra>(() => {
     if (typeof window === 'undefined') return empty;
     try {
@@ -44,16 +54,13 @@ export function SafraWizardProvider({ children }: { children: React.ReactNode })
       if (!raw) return empty;
       const parsed = JSON.parse(raw) as any;
 
-      // migração leve: se plantio antigo tinha 'produtoNome' e não tinha ids
       if (parsed?.plantios?.length) {
         parsed.plantios = parsed.plantios.map((p: any) => ({
           id: p.id,
           inicio: p.inicio,
           fim: p.fim,
           quantidadePlantadaKg: p.quantidadePlantadaKg ?? null,
-          areaIds: p.areaIds ?? [],
-          productId: typeof p.productId === 'number' ? p.productId : 0,  // 0 = precisa escolher
-          varietyId: typeof p.varietyId === 'number' ? p.varietyId : 0,
+          productId: typeof p.productId === 'number' ? p.productId : 0,
         }));
       }
       return {
@@ -62,27 +69,63 @@ export function SafraWizardProvider({ children }: { children: React.ReactNode })
         fim: parsed?.fim ?? '',
         areas: parsed?.areas ?? [],
         plantios: parsed?.plantios ?? [],
+        plantioForm: parsed?.plantioForm ?? undefined,
       } as DraftSafra;
     } catch {
       return empty;
     }
   });
 
-  // persiste a cada alteração
+  // persistência
   useEffect(() => {
     try {
       sessionStorage.setItem('safraDraft', JSON.stringify(draft));
     } catch {}
   }, [draft]);
 
-  const value = useMemo<Ctx>(() => ({
-    draft,
-    setBase: (p) => setDraft((d) => ({ ...d, ...p })),
-    setAreas: (areas) => setDraft((d) => ({ ...d, areas })),
-    addPlantio: (p) => setDraft((d) => ({ ...d, plantios: [...d.plantios, p] })),
-    removePlantio: (id) => setDraft((d) => ({ ...d, plantios: d.plantios.filter(x => x.id !== id) })),
-    reset: () => setDraft(empty),
-  }), [draft]);
+  /** ---- funções rasas com useCallback (sem nesting) ---- */
+  const setBase = useCallback((p: { nome: string; inicio: string; fim: string }) => {
+    setDraft((d) => ({ ...d, ...p }));
+  }, []);
+
+  const setAreas = useCallback((areas: AreasEntity[]) => {
+    setDraft((d) => ({ ...d, areas }));
+  }, []);
+
+  const addPlantio = useCallback((p: DraftPlantio) => {
+    setDraft((d) => ({ ...d, plantios: [...d.plantios, p] }));
+  }, []);
+
+  const removePlantio = useCallback((id: string) => {
+    setDraft((d) => {
+      const plantios = d.plantios.filter((x) => x.id !== id);
+      return { ...d, plantios };
+    });
+  }, []);
+
+  const setPlantioForm = useCallback((form: PlantioForm) => {
+    setDraft((d) => ({ ...d, plantioForm: form }));
+  }, []);
+
+  const clearPlantioForm = useCallback(() => {
+    setDraft((d) => ({ ...d, plantioForm: undefined }));
+  }, []);
+
+  const reset = useCallback(() => setDraft(empty), []);
+
+  const value = useMemo<Ctx>(
+    () => ({
+      draft,
+      setBase,
+      setAreas,
+      addPlantio,
+      removePlantio,
+      setPlantioForm,
+      clearPlantioForm,
+      reset,
+    }),
+    [draft, setBase, setAreas, addPlantio, removePlantio, setPlantioForm, clearPlantioForm, reset]
+  );
 
   return <WizardCtx.Provider value={value}>{children}</WizardCtx.Provider>;
 }

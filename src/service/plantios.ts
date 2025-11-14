@@ -34,15 +34,16 @@ function toIsoZ(d?: string | null): string | null | undefined {
 export type PlantioDTO = {
   id: number;
   name: string;
-  plantingDate: string;              // ISO
-  plantingEndDate?: string | null;   // ISO | null
+  plantingDate: string;                // ISO
+  plantingEndDate?: string | null;     // ISO | null
   expectedHarvestDate?: string | null; // ISO | null
   quantityPlanted?: number | null;
   quantityHarvested?: number | null;
   expectedYield?: number | null;
   harvestId: number;
   productId?: number | null;
-  varietyId?: number | null;
+  /** >>> alinhado ao Swagger */
+  areaIds?: number[];                  // pode vir no GET
 };
 
 /** Corpo aceito no PATCH /api/v1/plantings/{id} */
@@ -58,8 +59,10 @@ export type PlantioUpdate = {
   quantityPlanted?: number | null;
   quantityHarvested?: number | null;
   productId?: number | null;
-  varietyId?: number | null;
   expectedYield?: number | null;
+
+  /** >>> alinhado ao Swagger */
+  areaIds?: number[];                   // enviar quando informado
 };
 
 /* ===================== API calls ===================== */
@@ -89,8 +92,9 @@ export async function updatePlantio(
       quantityHarvested: payload.quantityHarvested ?? null,
       harvestId: payload.harvestId,
       productId: payload.productId ?? null,
-      varietyId: payload.varietyId ?? null,
       expectedYield: payload.expectedYield ?? null,
+      /** >>> novo: enviar se vier */
+      areaIds: payload.areaIds ?? undefined,
     };
     await api.patch(`/api/v1/plantings/${id}`, body);
     return { isSuccess: true };

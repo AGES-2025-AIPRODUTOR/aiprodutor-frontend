@@ -1,11 +1,12 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageTitle from '../../components/PageTitle';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirmDialog';
 import { Plus } from 'lucide-react';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import { getSafrasByProducer, deleteSafra, type SafraListItem } from '@/service/safras';
@@ -14,11 +15,16 @@ import { SafraCard } from './components/SafraCard';
 import { SafraCardSkeleton } from './components/SafraCardSkeleton';
 import { EmptyState } from './components/EmptyState';
 import { ErrorState } from './components/ErrorState';
+import { toast } from 'sonner';
 
 export default function ControleSafra() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: producer } = useAgriculturalProducerContext();
+  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; safraId: number | null }>({
+    isOpen: false,
+    safraId: null,
+  });
 
   // garante que nunca iremos chamar a API com id=0
   const producerId = useMemo(() => (producer?.id && producer.id > 0 ? producer.id : 0), [producer]);
@@ -38,14 +44,27 @@ export default function ControleSafra() {
     enabled: !!producerId && producerId > 0,
   });
 
-  const handleDeleteSafra = async (safraId: number) => {
-    if (!confirm('Deseja realmente excluir/desativar esta safra?')) return;
-    const { isSuccess, errorMessage } = await deleteSafra(safraId);
+  const handleDeleteSafra = (safraId: number) => {
+    setConfirmDelete({ isOpen: true, safraId });
+  };
+
+  const confirmDeleteSafra = async () => {
+    if (!confirmDelete.safraId) return;
+
+    const { isSuccess, errorMessage } = await deleteSafra(confirmDelete.safraId);
+
     if (isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
+      toast.success('Safra excluída com sucesso!');
     } else {
-      alert(errorMessage || 'Falha ao excluir a safra.');
+      toast.error(errorMessage || 'Falha ao excluir a safra.');
     }
+
+    setConfirmDelete({ isOpen: false, safraId: null });
+  };
+
+  const cancelDeleteSafra = () => {
+    setConfirmDelete({ isOpen: false, safraId: null });
   };
 
   const handleEditSafra = (safraId: number) => {
@@ -62,10 +81,7 @@ export default function ControleSafra() {
 
       <div className="flex justify-center w-full py-4 border-b mb-3 bg-white">
         <Link href="/cadastrarSafra/safraCadastro">
-          <Button
-            variant="outline"
-            className="border-green-700 text-green-700 py-7 px-4 bg-white hover:bg-green-50"
-          >
+          <Button variant="outline" className="py-7 px-4">
             <Plus className="mr-2 h-5 w-5" />
             Adicionar Nova Safra
           </Button>
@@ -91,6 +107,13 @@ export default function ControleSafra() {
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        description="Deseja realmente excluir/desativar esta safra?"
+        onConfirm={confirmDeleteSafra}
+        onCancel={cancelDeleteSafra}
+      />
     </main>
   );
 }

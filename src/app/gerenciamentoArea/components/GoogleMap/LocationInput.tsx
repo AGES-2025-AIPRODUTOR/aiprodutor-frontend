@@ -1,6 +1,7 @@
 'use client';
 
 import { usePlacesWidget } from "react-google-autocomplete";
+import { Input } from '@/components/ui/input';
 
 interface Location {
   lat: number;
@@ -30,11 +31,11 @@ export default function LocationInput({ onLocationSelected }: LocationInputProps
   });
 
   return (
-    <input
+    <Input
       type="text"
       placeholder="Digite sua localização"
       ref={ref}
-      className="w-4/5 max-w-md px-3 py-2 border border-gray-300 rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-green-500"
+      className="w-4/5 max-w-md mb-6"
     />
   );
 }

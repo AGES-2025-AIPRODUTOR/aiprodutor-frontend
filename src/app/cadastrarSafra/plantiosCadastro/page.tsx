@@ -8,18 +8,25 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import SafraSteps from '@/app/cadastrarSafra/components/SafraSteps';
-import { useSafraWizard } from '@/context/SafraWizardContext';
+import { useSafraWizard, type PlantioForm } from '@/context/SafraWizardContext';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import type { AreasEntity } from '@/service/areas';
 import { Input } from '@/components/ui/input';
 import { createSafra } from '@/service/safras';
+import type { CreateSafraDTO, CreatePlantingDTO } from '@/service/safras';
 
-// Produtos / Variedades
+// Produtos (sem variedade)
 import { getProducts, type Product } from '@/service/products';
-import { getVarietiesByProduct, type Variety } from '@/service/varieties';
 
 // usa o mesmo modal da tela de safra
 import AreaListModal from '../components/areasList/AreaList';
@@ -33,6 +40,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 // util: "12,3 kg" -> 12.3
 function parseKg(value: string): number | null {
@@ -48,33 +56,32 @@ function parseKg(value: string): number | null {
 export default function PlantiosPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { draft, addPlantio, removePlantio, reset } = useSafraWizard();
+  const { draft, addPlantio, removePlantio, reset, setPlantioForm, clearPlantioForm } =
+    useSafraWizard();
   const { data: producer } = useAgriculturalProducerContext();
-  const producerId = producer?.id ?? 1;
+  const producerId = producer?.id ?? 1; // default = 1
 
   const [mounted, setMounted] = useState(false);
   const [salvando, setSalvando] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Form do plantio atual
-  const [plantioNome, setPlantioNome] = useState(''); // NEW: nome do plantio
-  const [inicio, setInicio] = useState<string>('');
-  const [fim, setFim] = useState<string>('');
-  const [qtdTxt, setQtdTxt] = useState('');
-  const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
+  // Form do plantio atual - inicializa com dados salvos ou vazios
+  const [plantioNome, setPlantioNome] = useState(draft?.plantioForm?.plantioNome || ''); // nome do plantio
+  const [inicio, setInicio] = useState<string>(draft?.plantioForm?.inicio || '');
+  const [fim, setFim] = useState<string>(draft?.plantioForm?.fim || '');
+  const [qtdTxt, setQtdTxt] = useState(draft?.plantioForm?.qtdTxt || ''); // quantidade plantada (kg)
+  const [expectedTxt, setExpectedTxt] = useState(draft?.plantioForm?.expectedTxt || ''); // produção esperada (kg) — novo
+  const [selecionadas, setSelecionadas] = useState<AreasEntity[]>(
+    draft?.plantioForm?.selecionadas || []
+  );
   const [abrirModalAreas, setAbrirModalAreas] = useState(false);
 
-  // Produtos / Variedades
+  // Produtos (sem variedade)
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
 
-  const [productId, setProductId] = useState<number | ''>('');
-  const [varietyId, setVarietyId] = useState<number | ''>('');
-
-  const [varieties, setVarieties] = useState<Variety[]>([]);
-  const [varietiesLoading, setVarietiesLoading] = useState(false);
-  const [varietiesError, setVarietiesError] = useState<string | null>(null);
+  const [productId, setProductId] = useState<number | ''>(draft?.plantioForm?.productId || '');
 
   // Subconjunto permitido = áreas da safra
   const allowedAreas = draft?.areas ?? [];
@@ -85,25 +92,26 @@ export default function PlantiosPage() {
   // lookup para nomes (sumário bonitinho)
   const productNameOf = (id?: number | '') =>
     id ? (products.find((p) => p.id === id)?.name ?? `#${id}`) : '—';
-  const varietyNameOf = (id?: number | '') =>
-    id ? (varieties.find((v) => v.id === id)?.name ?? `#${id}`) : '—';
+
   const areaNameMap = useMemo(
     () => new Map(allowedAreas.map((a) => [a.id, a.name] as const)),
     [allowedAreas]
   );
+
   // ====== CONFIRMAÇÃO ======
   const [showConfirm, setShowConfirm] = useState(false);
   const [plantingsPreview, setPlantingsPreview] = useState<
     {
       name: string;
       productId?: number;
-      varietyId?: number;
       plantingDate: string;
       expectedHarvestDate?: string;
       quantityPlanted: number;
+      expectedYield?: number | null; // novo no preview
       areaIds: number[];
     }[]
   >([]);
+
   useEffect(() => {
     (async () => {
       const res = await getProducts();
@@ -118,31 +126,34 @@ export default function PlantiosPage() {
   }, []);
 
   useEffect(() => {
-    if (productId === '' || productId == null) {
-      setVarieties([]);
-      setVarietyId('');
-      return;
-    }
-    setVarietiesLoading(true);
-    (async () => {
-      const res = await getVarietiesByProduct(Number(productId));
-      if (res.isSuccess) {
-        setVarieties(res.response || []);
-        setVarietiesError(null);
-        setVarietyId('');
-      } else {
-        setVarietiesError(res.errorMessage || 'Falha ao carregar variedades');
-        setVarieties([]);
-        setVarietyId('');
-      }
-      setVarietiesLoading(false);
-    })();
-  }, [productId]);
-
-  useEffect(() => {
     if (!mounted) return;
     if (invalid) router.replace('/cadastrarSafra');
   }, [mounted, invalid, router]);
+
+  // Salva dados do formulário no contexto sempre que houver mudança
+  useEffect(() => {
+    if (!mounted) return;
+    const formData: PlantioForm = {
+      plantioNome,
+      inicio,
+      fim,
+      qtdTxt,
+      expectedTxt,
+      productId,
+      selecionadas,
+    };
+    setPlantioForm(formData);
+  }, [
+    mounted,
+    plantioNome,
+    inicio,
+    fim,
+    qtdTxt,
+    expectedTxt,
+    productId,
+    selecionadas,
+    setPlantioForm,
+  ]);
 
   if (!mounted || invalid) return null;
 
@@ -151,18 +162,18 @@ export default function PlantiosPage() {
     !!inicio &&
     !!fim &&
     productId !== '' &&
-    varietyId !== '' &&
     parseKg(qtdTxt) !== null &&
-    selecionadas.length > 0;
+    selecionadas.length > 0; // expectedYield NÃO é obrigatório
 
   const limparForm = () => {
     setPlantioNome('');
     setInicio('');
     setFim('');
     setProductId('');
-    setVarietyId('');
     setQtdTxt('');
+    setExpectedTxt(''); // limpa produção esperada
     setSelecionadas([]);
+    clearPlantioForm(); // limpa também do contexto
   };
 
   const handleAdicionarOutro = () => {
@@ -170,12 +181,12 @@ export default function PlantiosPage() {
     // NOTE: acrescentei "name" no draft – ver ajuste no SafraWizard abaixo
     addPlantio({
       id: crypto.randomUUID(),
-      name: plantioNome.trim(), // NEW
+      name: plantioNome.trim(),
       inicio,
       fim,
       productId: Number(productId),
-      varietyId: Number(varietyId),
       quantidadePlantadaKg: parseKg(qtdTxt),
+      producaoEsperadaKg: parseKg(expectedTxt), // novo no draft
       areaIds: selecionadas.map((a) => a.id),
     } as any);
     limparForm();
@@ -188,17 +199,16 @@ export default function PlantiosPage() {
       !!inicio &&
       !!fim &&
       productId !== '' &&
-      varietyId !== '' &&
       parseKg(qtdTxt) !== null &&
       selecionadas.length > 0;
 
     const mappedDraft = draft!.plantios.map((p: any) => ({
       name: p.name ?? 'Plantio', // fallback
       productId: p.productId,
-      varietyId: p.varietyId,
       plantingDate: p.inicio,
       expectedHarvestDate: p.fim,
       quantityPlanted: p.quantidadePlantadaKg ?? 0,
+      expectedYield: p.producaoEsperadaKg ?? null, // novo vindo do draft
       areaIds: p.areaIds,
     }));
 
@@ -207,10 +217,10 @@ export default function PlantiosPage() {
           {
             name: plantioNome.trim(),
             productId: Number(productId),
-            varietyId: Number(varietyId),
             plantingDate: inicio,
             expectedHarvestDate: fim,
             quantityPlanted: parseKg(qtdTxt) ?? 0,
+            expectedYield: parseKg(expectedTxt), // novo pendente
             areaIds: selecionadas.map((a) => a.id),
           },
         ]
@@ -225,28 +235,56 @@ export default function PlantiosPage() {
     try {
       setSalvando(true);
 
-      const payload = {
+      const plantingsComArea: CreatePlantingDTO[] = plantingsPreview
+        .map((p) => ({
+          name: p.name,
+          plantingDate: p.plantingDate,
+          expectedHarvestDate: p.expectedHarvestDate,
+          quantityPlanted: p.quantityPlanted,
+          expectedYield: p.expectedYield ?? undefined, // novo no payload
+          productId: p.productId,
+          areaIds: (p.areaIds ?? [])
+            .map((id: number | string) => Number(id))
+            .filter((n) => Number.isFinite(n)),
+        }))
+        .filter((p) => p.areaIds.length > 0);
+
+      const payload: CreateSafraDTO = {
         name: draft!.nome,
         startDate: draft!.inicio,
         endDate: draft!.fim,
         producerId,
-        areaIds: allowedAreas.map((a) => a.id),
-        plantings: plantingsPreview,
+        status: 'in_progress',
+        plantings: plantingsComArea,
       };
 
       const { isSuccess, errorMessage } = await createSafra(payload);
+
       if (!isSuccess) {
         setSalvando(false);
-        alert(errorMessage || 'Não foi possível salvar a safra.');
+        toast.error(errorMessage || 'Não foi possível salvar a safra.');
         return;
       }
 
-      reset();
-      queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
-      router.replace('/controleSafra');
+      // --- SUCESSO: feche modal/limpe estados ANTES de navegar ---
+      setShowConfirm(false); // fecha o Dialog
+      reset(); // limpa o wizard (incluindo plantioForm)
+      await queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
+
+      // dá uma microfolga pro React aplicar o estado e então navega
+      setTimeout(() => {
+        // use replace para não voltar pro wizard
+        try {
+          router.replace('/controleSafra'); // sua Home
+        } catch {
+          // fallback bruto se algo bloquear o router
+          window.location.href = '/';
+        }
+      }, 0);
     } catch {
+      toast.error('Erro inesperado ao salvar.');
+    } finally {
       setSalvando(false);
-      alert('Erro inesperado ao salvar.');
     }
   };
 
@@ -254,11 +292,11 @@ export default function PlantiosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col px-4 pb-24 pt-2">
-      <PageTitle title="Adicionar plantio" href="/cadastrarSafra" variant="center" />
+      <PageTitle title="Adicionar Plantio" href="/cadastrarSafra" variant="center" />
       <SafraSteps active="plantios" safraDone title="Adicionar plantio" className="mb-3" />
 
       {/* Datas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-2">
         <DateFieldModal
           label="Data Início"
           value={inicio}
@@ -281,50 +319,34 @@ export default function PlantiosPage() {
       {/* Nome do Plantio */}
       <div className="mt-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">Nome do Plantio *</label>
-        <input
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+        <Input
           placeholder="Ex.: Plantio de Tomate - Talhão 1"
           value={plantioNome}
           onChange={(e) => setPlantioNome(e.target.value)}
         />
       </div>
 
-      {/* Produto e Variedade */}
+      {/* Produto (sem variedade) */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Produto *</label>
-          <select
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            value={productId}
-            onChange={(e) => setProductId(e.target.value ? Number(e.target.value) : '')}
+          <Select
+            value={productId ? String(productId) : ''}
+            onValueChange={(value) => setProductId(value ? Number(value) : '')}
             disabled={productsLoading}
           >
-            <option value="">Selecione…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              {products.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {productsError && <p className="mt-1 text-xs text-red-600">{productsError}</p>}
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Variedade *</label>
-          <select
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            value={varietyId}
-            onChange={(e) => setVarietyId(e.target.value ? Number(e.target.value) : '')}
-            disabled={varietiesLoading || productId === ''}
-          >
-            <option value="">Selecione…</option>
-            {varieties.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-          {varietiesError && <p className="mt-1 text-xs text-red-600">{varietiesError}</p>}
         </div>
       </div>
 
@@ -334,6 +356,19 @@ export default function PlantiosPage() {
           Quantidade Plantada *
         </label>
         <Input unit="kg" value={qtdTxt} onChange={(e) => setQtdTxt(e.target.value)} />
+      </div>
+
+      {/* Produção esperada (novo — mesmo molde) */}
+      <div className="mb-4">
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Produção Esperada (opcional)
+        </label>
+        <Input
+          unit="kg"
+          placeholder="ex.: 1.200 kg"
+          value={expectedTxt}
+          onChange={(e) => setExpectedTxt(e.target.value)}
+        />
       </div>
 
       {/* Áreas */}
@@ -374,7 +409,7 @@ export default function PlantiosPage() {
           type="button"
           onClick={handleAdicionarOutro}
           disabled={!podeAdicionar}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60"
+          className="w-full"
         >
           Adicionar outro plantio
         </Button>
@@ -384,17 +419,12 @@ export default function PlantiosPage() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push('/cadastrarSafra')}
-          className="flex-1 border-green-700 text-green-700"
+          onClick={() => router.push('/cadastrarSafra/safraCadastro')}
+          className="flex-1"
         >
-          Cancelar
+          ← Voltar para Safra
         </Button>
-        <Button
-          type="button"
-          onClick={abrirConfirmacao}
-          disabled={salvando}
-          className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60"
-        >
+        <Button type="button" onClick={abrirConfirmacao} disabled={salvando} className="flex-1">
           {salvando ? 'Salvando…' : 'Finalizar'}
         </Button>
       </div>
@@ -407,9 +437,11 @@ export default function PlantiosPage() {
             {draft!.plantios.map((p: any) => (
               <li key={p.id} className="flex items-center justify-between">
                 <span>
-                  <strong>{p.name ?? 'Plantio'}</strong> — Prod: {p.productId} — Var: {p.varietyId}{' '}
-                  — {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg — Áreas:{' '}
-                  {p.areaIds.join(', ')}
+                  <strong>{p.name ?? 'Plantio'}</strong> — Prod: {p.productId}
+                  {' — '}
+                  {p.inicio} → {p.fim} — {p.quantidadePlantadaKg ?? '—'} kg
+                  {' — Esperada: '}
+                  {p.producaoEsperadaKg ?? '—'} kg — Áreas: {p.areaIds.join(', ')}
                 </span>
                 <Button variant="outline" size="sm" onClick={() => removePlantio(p.id)}>
                   Remover
@@ -437,13 +469,16 @@ export default function PlantiosPage() {
               <div key={i} className="rounded border p-2">
                 <div className="font-medium">{p.name}</div>
                 <div>Produto: {productNameOf(p.productId)}</div>
-                <div>Variedade: {varietyNameOf(p.varietyId)}</div>
-                <div>Data de início: {p.plantingDate?? '—'}</div>
+                <div>Data de início: {p.plantingDate ?? '—'}</div>
                 <div>Data Final: {p.expectedHarvestDate ?? '—'}</div>
                 <div>Quantidade: {p.quantityPlanted?.toLocaleString('pt-BR')} kg</div>
                 <div>
+                  Produção esperada:{' '}
+                  {p.expectedYield != null ? `${p.expectedYield.toLocaleString('pt-BR')} kg` : '—'}
+                </div>
+                <div>
                   Áreas: {p.areaIds.map((id) => areaNameMap.get(id) ?? `#${id}`).join(', ')}
-                </div>{' '}
+                </div>
               </div>
             ))}
           </div>
@@ -452,7 +487,7 @@ export default function PlantiosPage() {
             <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
               Voltar
             </Button>
-            <Button onClick={salvarAgora} className="flex-1 bg-green-600 hover:bg-green-700">
+            <Button onClick={salvarAgora} className="flex-1">
               Confirmar e salvar
             </Button>
           </DialogFooter>

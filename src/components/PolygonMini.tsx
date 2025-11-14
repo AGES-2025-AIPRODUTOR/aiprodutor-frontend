@@ -5,98 +5,111 @@ import type { Polygon as GJPolygon, MultiPolygon as GJMultiPolygon } from 'geojs
 
 type RGB = { r: number; g: number; b: number } | [number, number, number];
 
-/** Aceita GeoJSON + “likes” vindos do back */
 type PolygonLike = { type: 'Polygon'; coordinates: number[][][] };
 type MultiPolygonLike = { type: 'MultiPolygon'; coordinates: number[][][][] };
-// 👇 Aceitar Polygon | MultiPolygon | “Polygon-like” (do back)
 type AnyPolygon =
   | GJPolygon
   | GJMultiPolygon
   | PolygonLike
   | MultiPolygonLike
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | { type: string; coordinates: any };
 
 type Props = {
-  polygon: AnyPolygon;     // <-- antes era só GeoJSONPolygon
+  polygon: AnyPolygon;
   size?: number;
   className?: string;
-
-  // Moldura
   frameStroke?: string;
   frameStrokeWidth?: number;
   frameRadius?: number;
   bg?: string;
-
-  // Estilo padrão do polígono (fallback se não passar `color`)
   stroke?: string;
   strokeWidth?: number;
   fill?: string;
   fillOpacity?: number;
-
-  // Cor opcional (RGB/hex/etc.)
   color?: string | RGB;
-
-  // padding interno
   padding?: number;
 };
-/** ---- type guards seguros ---- */
+
+/** ---- type guards ---- */
 function hasCoords(p: unknown): p is { type: string; coordinates: any } {
   return !!p && typeof p === 'object' && 'type' in (p as any) && 'coordinates' in (p as any);
 }
 function isPolygon(p: AnyPolygon): p is GJPolygon | PolygonLike {
-  return p.type === 'Polygon' && hasCoords(p);
+  return hasCoords(p) && p.type === 'Polygon';
 }
 function isMultiPolygon(p: AnyPolygon): p is GJMultiPolygon | MultiPolygonLike {
-  return p.type === 'MultiPolygon' && hasCoords(p);
+  return hasCoords(p) && p.type === 'MultiPolygon';
 }
+
 function toCssColor(color?: string | RGB): string | undefined {
   if (!color) return undefined;
   if (typeof color === 'string') {
     const m = color.match(/^\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*$/);
-    if (m) return `rgb(${m[1]}, ${m[2]}, ${m[3]})`;
-    return color;
+    return m ? `rgb(${m[1]}, ${m[2]}, ${m[3]})` : color;
   }
   const [r, g, b] = Array.isArray(color) ? color : [color.r, color.g, color.b];
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-/** Projeta [lng,lat] e centraliza no box considerando padding */
-function projectRingsCentered(
-  // aceita anelagem de Polygon (N x M x 2)
-  rings: number[][][],
-  boxW: number,
-  boxH: number,
-  pad: number
-): { d: string } {
-  if (!rings?.length || !rings[0]?.length) return { d: '' };
+/** --------- Helpers de geometria --------- */
 
-  const all = rings.flat().map(([lng, lat]) => ({ lng, lat }));
-  if (all.length < 3) return { d: '' };
+type Ring = { x: number; y: number }[];
+type Bounds = { minX: number; minY: number; maxX: number; maxY: number };
 
-  const lat0 = all.reduce((s, p) => s + p.lat, 0) / all.length;
-  const lng0 = all.reduce((s, p) => s + p.lng, 0) / all.length;
+function normalizeRings(polygon: AnyPolygon): number[][][] | null {
+  if (!hasCoords(polygon)) return null;
+  if (isPolygon(polygon)) return polygon.coordinates as number[][][];
+  if (isMultiPolygon(polygon)) return (polygon.coordinates as number[][][][]).flat();
+  // fallback: aceitar “likes” desde que tenham estrutura minimamente válida
+  const c = polygon.coordinates as unknown;
+  return Array.isArray(c) && Array.isArray(c[0]) && Array.isArray(c[0][0]) ? (c as number[][][]) : null;
+}
+
+function centroidLngLat(rings: number[][][]): { lng0: number; lat0: number } | null {
+  const all = rings.flat();
+  if (all.length < 3) return null;
+  let sumLng = 0, sumLat = 0;
+  for (const [lng, lat] of all) {
+    sumLng += lng;
+    sumLat += lat;
+  }
+  return { lng0: sumLng / all.length, lat0: sumLat / all.length };
+}
+
+function projectRings(rings: number[][][], lng0: number, lat0: number): Ring[] {
   const cosLat0 = Math.cos((lat0 * Math.PI) / 180);
-
-  const projected = rings.map(ring =>
+  return rings.map(ring =>
     ring.map(([lng, lat]) => ({
       x: (lng - lng0) * cosLat0,
       y: (lat - lat0),
     }))
   );
+}
 
+function boundsOf(projected: Ring[]): Bounds | null {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  let any = false;
   for (const ring of projected) {
     for (const p of ring) {
+      any = true;
       if (p.x < minX) minX = p.x;
       if (p.x > maxX) maxX = p.x;
       if (p.y < minY) minY = p.y;
       if (p.y > maxY) maxY = p.y;
     }
   }
-  const w = maxX - minX;
-  const h = maxY - minY;
-  if (w === 0 || h === 0) return { d: '' };
+  return any ? { minX, minY, maxX, maxY } : null;
+}
+
+function scaleAndOffset(
+  boxW: number,
+  boxH: number,
+  pad: number,
+  b: Bounds
+): { k: number; offX: number; offY: number; drawW: number; drawH: number } | null {
+  const w = b.maxX - b.minX;
+  const h = b.maxY - b.minY;
+  if (w === 0 || h === 0) return null;
 
   const drawW = boxW - pad * 2;
   const drawH = boxH - pad * 2;
@@ -105,9 +118,13 @@ function projectRingsCentered(
   const offX = pad + (drawW - w * k) / 2;
   const offY = pad + (drawH - h * k) / 2;
 
+  return { k, offX, offY, drawW, drawH };
+}
+
+function ringsToPath(projected: Ring[], b: Bounds, k: number, offX: number, offY: number): string {
   const toSvg = (p: { x: number; y: number }) => ({
-    x: offX + (p.x - minX) * k,
-    y: offY + (maxY - p.y) * k, // inverte Y
+    x: offX + (p.x - b.minX) * k,
+    y: offY + (b.maxY - p.y) * k, // inverte Y
   });
 
   const parts: string[] = [];
@@ -122,8 +139,24 @@ function projectRingsCentered(
     cmds.push('Z');
     parts.push(cmds.join(' '));
   }
+  return parts.join(' ');
+}
 
-  return { d: parts.join(' ') };
+/** Orquestradora: pequena e com baixa complexidade */
+function projectRingsCentered(rings: number[][][], boxW: number, boxH: number, pad: number): { d: string } {
+  if (!rings?.length || !rings[0]?.length) return { d: '' };
+
+  const c = centroidLngLat(rings);
+  if (!c) return { d: '' };
+
+  const projected = projectRings(rings, c.lng0, c.lat0);
+  const b = boundsOf(projected);
+  if (!b) return { d: '' };
+
+  const s = scaleAndOffset(boxW, boxH, pad, b);
+  if (!s) return { d: '' };
+
+  return { d: ringsToPath(projected, b, s.k, s.offX, s.offY) };
 }
 
 export default function PolygonMini({
@@ -141,24 +174,9 @@ export default function PolygonMini({
   color,
   padding = 8,
 }: Props) {
-  // 👇 normaliza: se for MultiPolygon, junta todos os “polygons” em um único array de rings
   const d = useMemo(() => {
     if (!polygon) return '';
-
-    let rings: number[][][] | null = null;
-
-    if (polygon.type === 'Polygon') {
-      rings = polygon.coordinates as number[][][];
-    } else if (polygon.type === 'MultiPolygon') {
-      // flatten de number[][][][] -> number[][][]
-      rings = (polygon.coordinates as number[][][][]).flat();
-    } else {
-      // fallback para objetos “parecidos” (teu tipo custom)
-      if (polygon.type === 'Polygon' && polygon.coordinates) {
-        rings = polygon.coordinates as number[][][];
-      }
-    }
-
+    const rings = normalizeRings(polygon);
     if (!rings) return '';
     return projectRingsCentered(rings, size, size, padding).d;
   }, [polygon, size, padding]);

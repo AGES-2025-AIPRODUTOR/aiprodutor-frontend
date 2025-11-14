@@ -136,7 +136,6 @@ export default function Cadastro() {
               id="name"
               type="text"
               placeholder="Digite seu nome completo"
-              className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
               {...register('name', { required: 'Nome é obrigatório' })}
             />
@@ -195,7 +194,6 @@ export default function Cadastro() {
               id="email"
               type="email"
               placeholder="seu@email.com"
-              className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
               {...register('email', {
                 required: 'Email é obrigatório',
@@ -254,7 +252,6 @@ export default function Cadastro() {
               id="street"
               type="text"
               placeholder="Nome da rua"
-              className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
               {...register('street', { required: 'Rua é obrigatória' })}
             />
@@ -268,7 +265,6 @@ export default function Cadastro() {
               id="number"
               type="text"
               placeholder="Número da residência"
-              className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
               {...register('number', { required: 'Número é obrigatório' })}
             />
@@ -282,7 +278,6 @@ export default function Cadastro() {
               id="complement"
               type="text"
               placeholder="Apartamento, casa, etc. (opcional)"
-              className="focus:border-green-600 focus:ring-green-600"
               disabled={submetido}
               {...register('complement')}
             />
@@ -300,7 +295,7 @@ export default function Cadastro() {
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1"
               disabled={submetido}
             >
               {isLoading ? 'Salvando...' : 'Salvar'}

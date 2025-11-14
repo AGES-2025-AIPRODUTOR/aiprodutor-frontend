@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/cadastrarSafra/safraEditar/page.tsx
 'use client';
 
@@ -7,13 +8,22 @@ import Link from 'next/link';
 
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import AreaListModal from '@/app/cadastrarSafra/components/areasList/AreaList';
+import { ConfirmDialog } from '@/components/ui/confirmDialog';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 import type { AreasEntity } from '@/service/areas';
-
 import { getSafraById, updateSafra, deactivatePlantio, type PlantioEntity } from '@/service/safras';
+import { toast } from 'sonner';
 
 function EditarSafraContent() {
   const router = useRouter();
@@ -28,14 +38,19 @@ function EditarSafraContent() {
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [status, setStatus] = useState<'in_progress' | 'completed' | 'cancelled'>('in_progress');
 
-  // estado do formulário
+  // estados do formulário
   const [nome, setNome] = useState('');
   const [inicio, setInicio] = useState('');
   const [fim, setFim] = useState('');
   const [areas, setAreas] = useState<AreasEntity[]>([]);
   const [plantios, setPlantios] = useState<PlantioEntity[]>([]);
   const [abrirAreas, setAbrirAreas] = useState(false);
+
+  // estado de confirmação
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [plantioSelecionado, setPlantioSelecionado] = useState<number | null>(null);
 
   // carrega safra
   useEffect(() => {
@@ -49,10 +64,14 @@ function EditarSafraContent() {
         return;
       }
       setNome(response.nome);
-      setInicio(response.inicio); // já vem como YYYY-MM-DD pelo adapter
-      setFim(response.fim); // idem
+      setInicio(response.inicio);
+      setFim(response.fim);
       setAreas(response.areas || []);
       setPlantios(response.plantios || []);
+      if ((response as any).status) {
+        const st = (response as any).status as 'in_progress' | 'completed' | 'cancelled';
+        setStatus(st);
+      }
       setLoading(false);
     });
     return () => {
@@ -60,22 +79,24 @@ function EditarSafraContent() {
     };
   }, [safraId]);
 
-  const podeSalvar = nome.trim() && inicio && fim;
+  const podeSalvar = !!nome.trim() && !!inicio && !!fim;
 
   const onSalvar = async () => {
     if (!podeSalvar) return;
 
-    // ⚙️ Payload no formato da API (adapter no service espera isto)
     const body = {
       name: nome.trim(),
       startDate: inicio,
       endDate: fim,
-      areaIds: areas.map((a) => a.id),
+      status,
     };
 
-    const { isSuccess, errorMessage } = await updateSafra(safraId, body);
-    if (isSuccess)     router.push(`/controleSafra`);
-    else alert(errorMessage || 'Falha ao salvar');
+    const { isSuccess, errorMessage } = await updateSafra(safraId, body as any);
+    if (isSuccess) {
+      router.push(`/controleSafra`);
+    } else {
+      toast.error(errorMessage || 'Falha ao salvar');
+    }
   };
 
   const onConfirmAreas = (novas: AreasEntity[]) => {
@@ -86,13 +107,22 @@ function EditarSafraContent() {
     });
   };
 
-  const onDesativarPlantio = async (plantioId: number) => {
-    const ok = confirm('Deseja desativar este plantio?');
-    if (!ok) return;
+  const handleDesativarClick = (plantioId: number) => {
+    setPlantioSelecionado(plantioId);
+    setConfirmOpen(true);
+  };
 
-    const { isSuccess, errorMessage } = await deactivatePlantio(plantioId);
-    if (isSuccess) setPlantios((prev) => prev.filter((p) => p.id !== plantioId));
-    else alert(errorMessage || 'Erro ao desativar');
+  const confirmarDesativacao = async () => {
+    if (!plantioSelecionado) return;
+    const { isSuccess, errorMessage } = await deactivatePlantio(plantioSelecionado);
+    if (isSuccess) {
+      setPlantios((prev) => prev.filter((p) => p.id !== plantioSelecionado));
+      toast.success('Plantio desativado com sucesso.');
+    } else {
+      toast.error(errorMessage || 'Erro ao desativar.');
+    }
+    setPlantioSelecionado(null);
+    setConfirmOpen(false);
   };
 
   if (loading) return <main className="p-6">Carregando…</main>;
@@ -103,7 +133,7 @@ function EditarSafraContent() {
       <PageTitle title="Editar Safra" href="/cadastrarSafra" variant="center" />
 
       {/* Datas */}
-      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 mt-2">
         <DateFieldModal
           label="Data Início"
           value={inicio}
@@ -126,19 +156,29 @@ function EditarSafraContent() {
       {/* Nome */}
       <div className="mb-5">
         <label className="mb-1 block text-sm font-medium text-gray-700">Nome *</label>
-        <input
+        <Input
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           placeholder="Ex.: Safra de Laranja 25/26"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
         />
+      </div>
+      {/* Status */}
+      <div className="mb-5">
+        <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+        <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="in_progress">Em andamento</SelectItem>
+            <SelectItem value="completed">Concluída</SelectItem>
+            <SelectItem value="cancelled">Cancelada</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Áreas */}
       <div className="mb-2">
-        <div className="mb-1 flex items-end justify-between">
-          <label className="block text-sm font-medium text-gray-700">Áreas</label>
-        </div>
         <SelecionarArea areas={areas} onChange={setAreas} onAddClick={() => setAbrirAreas(true)} />
       </div>
 
@@ -149,14 +189,16 @@ function EditarSafraContent() {
       <div className="space-y-2">
         {plantios.map((p, idx) => (
           <div key={p.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
-            <span className="text-sm">Plantio {idx + 1}</span>
+            <span className="text-sm truncate max-w-[55%]" title={p.name?.trim() || ` ${idx + 1}`}>
+              Plantio: {p.name?.trim() ? p.name : ` ${idx + 1}`}
+            </span>
             <div className="flex gap-2">
               <Link href={`/cadastrarSafra/plantiosEditar?safraId=${safraId}&plantioId=${p.id}`}>
                 <Button variant="outline" size="sm">
                   Editar
                 </Button>
               </Link>
-              <Button variant="destructive" size="sm" onClick={() => onDesativarPlantio(p.id)}>
+              <Button variant="destructive" size="sm" onClick={() => handleDesativarClick(p.id)}>
                 Desativar
               </Button>
             </div>
@@ -167,21 +209,27 @@ function EditarSafraContent() {
         )}
       </div>
 
+      {/* Modal de confirmação */}
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        description="Deseja realmente desativar este plantio?"
+        onConfirm={confirmarDesativacao}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setPlantioSelecionado(null);
+        }}
+      />
+
       {/* Ações */}
       <div className="mt-6">
-        <Button
-          className="w-full bg-green-600 hover:bg-green-700"
-          onClick={onSalvar}
-          disabled={!podeSalvar}
-        >
+        <Button className="w-full" onClick={onSalvar} disabled={!podeSalvar}>
           Salvar
         </Button>
       </div>
 
-      {/* Modal áreas */}
+      {/* Modal de áreas */}
       <AreaListModal
-        // TODO: trocar por producerId real (contexto/autenticação)
-        producerId={0}
+        producerId={1}
         isOpen={abrirAreas}
         onClose={() => setAbrirAreas(false)}
         onConfirm={onConfirmAreas}
@@ -192,7 +240,9 @@ function EditarSafraContent() {
 
 export default function EditarSafraPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}
+    >
       <EditarSafraContent />
     </Suspense>
   );
