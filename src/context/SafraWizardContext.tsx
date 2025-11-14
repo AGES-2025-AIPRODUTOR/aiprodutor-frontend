@@ -11,13 +11,26 @@ export type DraftPlantio = {
   name?: string;
   productId: number;
 };
+
+export type PlantioForm = {
+  plantioNome: string;
+  inicio: string;
+  fim: string;
+  qtdTxt: string;
+  expectedTxt: string;
+  productId: number | '';
+  selecionadas: AreasEntity[];
+};
+
 export type DraftSafra = {
   nome: string;
   inicio: string;
   fim: string;
   areas: AreasEntity[];
   plantios: DraftPlantio[];
+  plantioForm?: PlantioForm;
 };
+
 const empty: DraftSafra = { nome: '', inicio: '', fim: '', areas: [], plantios: [] };
 
 type Ctx = {
@@ -26,6 +39,8 @@ type Ctx = {
   setAreas: (areas: AreasEntity[]) => void;
   addPlantio: (p: DraftPlantio) => void;
   removePlantio: (id: string) => void;
+  setPlantioForm: (form: PlantioForm) => void;
+  clearPlantioForm: () => void;
   reset: () => void;
 };
 
@@ -54,6 +69,7 @@ export function SafraWizardProvider({ children }: { children: React.ReactNode })
         fim: parsed?.fim ?? '',
         areas: parsed?.areas ?? [],
         plantios: parsed?.plantios ?? [],
+        plantioForm: parsed?.plantioForm ?? undefined,
       } as DraftSafra;
     } catch {
       return empty;
@@ -87,11 +103,29 @@ export function SafraWizardProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
+  const setPlantioForm = useCallback((form: PlantioForm) => {
+    setDraft((d) => ({ ...d, plantioForm: form }));
+  }, []);
+
+  const clearPlantioForm = useCallback(() => {
+    setDraft((d) => ({ ...d, plantioForm: undefined }));
+  }, []);
+
   const reset = useCallback(() => setDraft(empty), []);
 
-  const value = useMemo<Ctx>(() => ({
-    draft, setBase, setAreas, addPlantio, removePlantio, reset,
-  }), [draft, setBase, setAreas, addPlantio, removePlantio, reset]);
+  const value = useMemo<Ctx>(
+    () => ({
+      draft,
+      setBase,
+      setAreas,
+      addPlantio,
+      removePlantio,
+      setPlantioForm,
+      clearPlantioForm,
+      reset,
+    }),
+    [draft, setBase, setAreas, addPlantio, removePlantio, setPlantioForm, clearPlantioForm, reset]
+  );
 
   return <WizardCtx.Provider value={value}>{children}</WizardCtx.Provider>;
 }

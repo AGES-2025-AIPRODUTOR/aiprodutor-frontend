@@ -18,7 +18,7 @@ import {
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import SafraSteps from '@/app/cadastrarSafra/components/SafraSteps';
-import { useSafraWizard } from '@/context/SafraWizardContext';
+import { useSafraWizard, type PlantioForm } from '@/context/SafraWizardContext';
 import { useAgriculturalProducerContext } from '@/context/AgriculturalProducerContext';
 import type { AreasEntity } from '@/service/areas';
 import { Input } from '@/components/ui/input';
@@ -56,7 +56,8 @@ function parseKg(value: string): number | null {
 export default function PlantiosPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { draft, addPlantio, removePlantio, reset } = useSafraWizard();
+  const { draft, addPlantio, removePlantio, reset, setPlantioForm, clearPlantioForm } =
+    useSafraWizard();
   const { data: producer } = useAgriculturalProducerContext();
   const producerId = producer?.id ?? 1; // default = 1
 
@@ -64,13 +65,15 @@ export default function PlantiosPage() {
   const [salvando, setSalvando] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Form do plantio atual
-  const [plantioNome, setPlantioNome] = useState(''); // nome do plantio
-  const [inicio, setInicio] = useState<string>('');
-  const [fim, setFim] = useState<string>('');
-  const [qtdTxt, setQtdTxt] = useState(''); // quantidade plantada (kg)
-  const [expectedTxt, setExpectedTxt] = useState(''); // produção esperada (kg) — novo
-  const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
+  // Form do plantio atual - inicializa com dados salvos ou vazios
+  const [plantioNome, setPlantioNome] = useState(draft?.plantioForm?.plantioNome || ''); // nome do plantio
+  const [inicio, setInicio] = useState<string>(draft?.plantioForm?.inicio || '');
+  const [fim, setFim] = useState<string>(draft?.plantioForm?.fim || '');
+  const [qtdTxt, setQtdTxt] = useState(draft?.plantioForm?.qtdTxt || ''); // quantidade plantada (kg)
+  const [expectedTxt, setExpectedTxt] = useState(draft?.plantioForm?.expectedTxt || ''); // produção esperada (kg) — novo
+  const [selecionadas, setSelecionadas] = useState<AreasEntity[]>(
+    draft?.plantioForm?.selecionadas || []
+  );
   const [abrirModalAreas, setAbrirModalAreas] = useState(false);
 
   // Produtos (sem variedade)
@@ -78,7 +81,7 @@ export default function PlantiosPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
 
-  const [productId, setProductId] = useState<number | ''>('');
+  const [productId, setProductId] = useState<number | ''>(draft?.plantioForm?.productId || '');
 
   // Subconjunto permitido = áreas da safra
   const allowedAreas = draft?.areas ?? [];
@@ -127,6 +130,31 @@ export default function PlantiosPage() {
     if (invalid) router.replace('/cadastrarSafra');
   }, [mounted, invalid, router]);
 
+  // Salva dados do formulário no contexto sempre que houver mudança
+  useEffect(() => {
+    if (!mounted) return;
+    const formData: PlantioForm = {
+      plantioNome,
+      inicio,
+      fim,
+      qtdTxt,
+      expectedTxt,
+      productId,
+      selecionadas,
+    };
+    setPlantioForm(formData);
+  }, [
+    mounted,
+    plantioNome,
+    inicio,
+    fim,
+    qtdTxt,
+    expectedTxt,
+    productId,
+    selecionadas,
+    setPlantioForm,
+  ]);
+
   if (!mounted || invalid) return null;
 
   const podeAdicionar =
@@ -145,6 +173,7 @@ export default function PlantiosPage() {
     setQtdTxt('');
     setExpectedTxt(''); // limpa produção esperada
     setSelecionadas([]);
+    clearPlantioForm(); // limpa também do contexto
   };
 
   const handleAdicionarOutro = () => {
@@ -239,14 +268,14 @@ export default function PlantiosPage() {
 
       // --- SUCESSO: feche modal/limpe estados ANTES de navegar ---
       setShowConfirm(false); // fecha o Dialog
-      reset(); // limpa o wizard
+      reset(); // limpa o wizard (incluindo plantioForm)
       await queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
 
       // dá uma microfolga pro React aplicar o estado e então navega
       setTimeout(() => {
         // use replace para não voltar pro wizard
         try {
-          router.replace('/'); // sua Home
+          router.replace('/controleSafra'); // sua Home
         } catch {
           // fallback bruto se algo bloquear o router
           window.location.href = '/';
@@ -267,7 +296,7 @@ export default function PlantiosPage() {
       <SafraSteps active="plantios" safraDone title="Adicionar plantio" className="mb-3" />
 
       {/* Datas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-2">
         <DateFieldModal
           label="Data Início"
           value={inicio}
@@ -390,10 +419,10 @@ export default function PlantiosPage() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push('/cadastrarSafra')}
+          onClick={() => router.push('/cadastrarSafra/safraCadastro')}
           className="flex-1"
         >
-          Cancelar
+          ← Voltar para Safra
         </Button>
         <Button type="button" onClick={abrirConfirmacao} disabled={salvando} className="flex-1">
           {salvando ? 'Salvando…' : 'Finalizar'}

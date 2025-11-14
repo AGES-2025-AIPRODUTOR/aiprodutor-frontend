@@ -18,12 +18,6 @@ export default function Home() {
       linkTo: '/controleSafra',
     },
     {
-      title: 'Cadastrar Safra',
-      subtitle: 'Registar uma nova Safra',
-      icon: <TreeDeciduous className={itemIconSizing} />,
-      linkTo: '/cadastrarSafra/safraCadastro',
-    },
-    {
       title: 'Gerenciamento de Área',
       subtitle: 'Organize suas propriedades',
       icon: <MapPin className={itemIconSizing} />,

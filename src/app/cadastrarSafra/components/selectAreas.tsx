@@ -21,8 +21,8 @@ type SelecionarAreaProps = {
   onAddClick?: () => void;
 
   /** Fallbacks de carregamento */
-  harvestId?: number;   // tenta carregar áreas da safra
-  producerId?: number;  // pode ser usado como 2º fallback
+  harvestId?: number; // tenta carregar áreas da safra
+  producerId?: number; // pode ser usado como 2º fallback
 };
 
 type IdName = { id: number; name: string };
@@ -68,9 +68,7 @@ export default function SelecionarArea({
     if (missing.length === 0) return list;
 
     // faz requests em paralelo; tolera falhas (Promise.allSettled)
-    const results = await Promise.allSettled(
-      missing.map((a) => getAreaById(a.id))
-    );
+    const results = await Promise.allSettled(missing.map((a) => getAreaById(a.id)));
 
     const byId = new Map<number, AreasEntity>();
     results.forEach((res, idx) => {
@@ -211,7 +209,7 @@ export default function SelecionarArea({
   return (
     <div className="text-gray-400">
       <div className="m-1 flex items-end justify-between">
-        <label>Áreas</label>
+        <label className="text-black">Áreas</label>
         <Button
           variant="ghost"
           size="sm"
@@ -235,7 +233,10 @@ export default function SelecionarArea({
           </div>
         ) : (
           listaAreas.map((area) => (
-            <div key={area.id} className="flex w-full items-center border-b border-neutral-200 py-1">
+            <div
+              key={area.id}
+              className="flex w-full items-center border-b border-neutral-200 py-1"
+            >
               {/* Nome + metadados */}
               <span className="block w-[60%] truncate" title={area.name}>
                 {area.name}

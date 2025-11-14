@@ -16,7 +16,7 @@ import { useSafraWizard } from '@/context/SafraWizardContext';
 function CadastrarSafraContent() {
   const router = useRouter();
   const search = useSearchParams();
-  const { setBase, setAreas } = useSafraWizard();
+  const { draft, setBase, setAreas } = useSafraWizard();
 
   const producerId = useMemo(() => {
     const q = search?.get('producerId');
@@ -24,10 +24,10 @@ function CadastrarSafraContent() {
     return Number.isFinite(n) && n > 0 ? n : 1;
   }, [search]);
 
-  const [nomeSafra, setNomeSafra] = useState('');
-  const [inicio, setInicio] = useState<string>(''); // "YYYY-MM-DD"
-  const [fim, setFim] = useState<string>(''); // "YYYY-MM-DD"
-  const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
+  const [nomeSafra, setNomeSafra] = useState(draft?.nome || '');
+  const [inicio, setInicio] = useState<string>(draft?.inicio || ''); // "YYYY-MM-DD"
+  const [fim, setFim] = useState<string>(draft?.fim || ''); // "YYYY-MM-DD"
+  const [selecionadas, setSelecionadas] = useState<AreasEntity[]>(draft?.areas || []);
   const [abrirModalAreas, setAbrirModalAreas] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
@@ -69,7 +69,7 @@ function CadastrarSafraContent() {
       <SafraSteps active="safra" title="Adicionar plantio" className="mb-3" />
 
       {/* Datas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-2">
         <DateFieldModal
           label="Data Início"
           value={inicio}
@@ -107,7 +107,6 @@ function CadastrarSafraContent() {
 
       {/* Áreas */}
       <div className="mb-2">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Áreas</label>
         <SelecionarArea
           areas={selecionadas}
           onChange={setSelecionadas}
@@ -117,12 +116,7 @@ function CadastrarSafraContent() {
 
       {/* Ações */}
       <div className="mt-6 flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-          className="flex-1"
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">
           Cancelar
         </Button>
         <Button
@@ -149,7 +143,9 @@ function CadastrarSafraContent() {
 
 export default function CadastrarSafraPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}
+    >
       <CadastrarSafraContent />
     </Suspense>
   );
