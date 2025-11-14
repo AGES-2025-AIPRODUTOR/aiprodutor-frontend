@@ -81,7 +81,7 @@ export const HistoricoSafraCard: React.FC<{
                 key={planting.id}
                 className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200"
               >
-                <span className="text-sm font-medium text-gray-800">{planting.plantingName}</span>
+                <span className="text-sm font-medium text-gray-800">{planting.name}</span>
                 <span className="text-sm font-semibold text-gray-800">{planting.qtyEstimated}</span>
               </div>
             ))}
@@ -96,10 +96,7 @@ export const HistoricoSafraCard: React.FC<{
       </div>
 
       <div className="mt-4">
-        <Button
-          onClick={() => onDetailsClick?.(safra.safraId)}
-          className="w-full py-2 text-sm"
-        >
+        <Button onClick={() => onDetailsClick?.(safra.safraId)} className="w-full py-2 text-sm">
           Detalhes
         </Button>
       </div>

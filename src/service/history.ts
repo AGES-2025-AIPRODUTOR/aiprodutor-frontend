@@ -10,7 +10,7 @@ export interface Area {
 
 export interface Planting {
   id: number;
-  plantingName: string;
+  name: string;
   initialDate: string;
   estimatedEndDate: string | null;
   qtyEstimated: string;
