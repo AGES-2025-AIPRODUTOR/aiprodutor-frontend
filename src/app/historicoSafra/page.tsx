@@ -150,19 +150,19 @@ const Page = () => {
             </Button>
           </SheetTrigger>
 
-          <SheetContent side="bottom" className="h-[50vh] pb-24 rounded-t-3xl relative">
+          <SheetContent side="bottom" className="h-[60vh] rounded-t-3xl">
             <SheetHeader className="pb-6">
               <SheetTitle>Filtros</SheetTitle>
               <SheetDescription>Configure os filtros para refinar sua pesquisa</SheetDescription>
             </SheetHeader>
 
-            <div className="space-y-6 overflow-y-auto pb-28">
+            <div className="space-y-6 overflow-y-auto pb-20">
               {/* STATUS */}
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
+                    <SelectValue placeholder="Selecione um status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Concluído">Concluído</SelectItem>
@@ -181,7 +181,6 @@ const Page = () => {
                   value={safraInitialDate}
                   onChange={(e) => setSafraInitialDate(e.target.value)}
                   max={safraEndDate || undefined}
-                  className="text-gray-400"
                 />
               </div>
 
@@ -194,13 +193,12 @@ const Page = () => {
                   value={safraEndDate}
                   onChange={(e) => setSafraEndDate(e.target.value)}
                   min={safraInitialDate || undefined}
-                  className="text-gray-400"
                 />
               </div>
             </div>
 
             {/* BOTÕES FIXOS */}
-            <div className="flex gap-2 fixed md:static bottom-0 left-0 w-full bg-white p-4 md:p-0 border-t md:border-0 border-gray-200">
+            <div className="absolute bottom-0 left-0 right-0 flex gap-2 bg-white p-4 border-t border-gray-200">
               <Button
                 variant="outline"
                 className="flex-1"

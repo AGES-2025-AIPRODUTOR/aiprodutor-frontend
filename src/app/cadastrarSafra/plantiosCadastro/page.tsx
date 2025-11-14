@@ -8,7 +8,13 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import DateFieldModal from '@/components/ui/dateModal';
 import SelecionarArea from '@/app/cadastrarSafra/components/selectAreas';
 import SafraSteps from '@/app/cadastrarSafra/components/SafraSteps';
@@ -62,7 +68,7 @@ export default function PlantiosPage() {
   const [plantioNome, setPlantioNome] = useState(''); // nome do plantio
   const [inicio, setInicio] = useState<string>('');
   const [fim, setFim] = useState<string>('');
-  const [qtdTxt, setQtdTxt] = useState('');           // quantidade plantada (kg)
+  const [qtdTxt, setQtdTxt] = useState(''); // quantidade plantada (kg)
   const [expectedTxt, setExpectedTxt] = useState(''); // produção esperada (kg) — novo
   const [selecionadas, setSelecionadas] = useState<AreasEntity[]>([]);
   const [abrirModalAreas, setAbrirModalAreas] = useState(false);
@@ -232,15 +238,15 @@ export default function PlantiosPage() {
       }
 
       // --- SUCESSO: feche modal/limpe estados ANTES de navegar ---
-      setShowConfirm(false);     // fecha o Dialog
-      reset();                   // limpa o wizard
+      setShowConfirm(false); // fecha o Dialog
+      reset(); // limpa o wizard
       await queryClient.invalidateQueries({ queryKey: ['safras', producerId] });
 
       // dá uma microfolga pro React aplicar o estado e então navega
       setTimeout(() => {
         // use replace para não voltar pro wizard
         try {
-          router.replace('/');   // sua Home
+          router.replace('/'); // sua Home
         } catch {
           // fallback bruto se algo bloquear o router
           window.location.href = '/';
@@ -257,7 +263,7 @@ export default function PlantiosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col px-4 pb-24 pt-2">
-      <PageTitle title="Adicionar plantio" href="/cadastrarSafra" variant="center" />
+      <PageTitle title="Adicionar Plantio" href="/cadastrarSafra" variant="center" />
       <SafraSteps active="plantios" safraDone title="Adicionar plantio" className="mb-3" />
 
       {/* Datas */}
@@ -389,12 +395,7 @@ export default function PlantiosPage() {
         >
           Cancelar
         </Button>
-        <Button
-          type="button"
-          onClick={abrirConfirmacao}
-          disabled={salvando}
-          className="flex-1"
-        >
+        <Button type="button" onClick={abrirConfirmacao} disabled={salvando} className="flex-1">
           {salvando ? 'Salvando…' : 'Finalizar'}
         </Button>
       </div>
@@ -444,9 +445,7 @@ export default function PlantiosPage() {
                 <div>Quantidade: {p.quantityPlanted?.toLocaleString('pt-BR')} kg</div>
                 <div>
                   Produção esperada:{' '}
-                  {p.expectedYield != null
-                    ? `${p.expectedYield.toLocaleString('pt-BR')} kg`
-                    : '—'}
+                  {p.expectedYield != null ? `${p.expectedYield.toLocaleString('pt-BR')} kg` : '—'}
                 </div>
                 <div>
                   Áreas: {p.areaIds.map((id) => areaNameMap.get(id) ?? `#${id}`).join(', ')}
