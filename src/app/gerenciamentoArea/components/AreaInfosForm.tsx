@@ -182,7 +182,7 @@ export function EditAreaForm({
                 variant={'outline'}
                 className="w-full py-5 border border-green-600 text-green-600 bg-white hover:bg mb-3"
               >
-                {isLoading ? 'Carregando...' : 'Cancelar'}
+                {'Cancelar'}
               </Button>
               <Button type="submit" className="w-full py-5 bg-green-600 hover:bg-green-700 mb-3">
                 {isLoading ? 'Carregando...' : 'Concluir'}
