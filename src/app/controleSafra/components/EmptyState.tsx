@@ -11,21 +11,12 @@ export const EmptyState: React.FC = () => {
       <div className="mb-6">
         <Sprout className="w-16 h-16 text-gray-400 mx-auto" />
       </div>
-      
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        Nenhuma safra encontrada
-      </h3>
-      
+
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma safra encontrada</h3>
+
       <p className="text-gray-600 mb-6 max-w-sm">
         Você ainda não possui nenhuma safra cadastrada. Comece criando sua primeira safra.
       </p>
-      
-      <Link href="/cadastrarSafra">
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar Nova Safra
-        </Button>
-      </Link>
     </div>
   );
 };
