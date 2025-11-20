@@ -34,6 +34,17 @@ async function getGoogleMapsKeyFromAWS(): Promise<string | undefined> {
     
     if (data.SecretString) {
       console.log("Chave do Google Maps obtida com sucesso da AWS.");
+
+      try {
+        const secretObj = JSON.parse(data.SecretString);
+        
+        if (secretObj.Maps_API_KEY) {
+          return secretObj.Maps_API_KEY;
+        }
+      } catch (e) {
+        console.warn("Não foi possível fazer parse do segredo como JSON, usando valor bruto.");
+      }
+
       return data.SecretString;
     }
     throw new Error("SecretString (o conteúdo do segredo) está vazio.");
