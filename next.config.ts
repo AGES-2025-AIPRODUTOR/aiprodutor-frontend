@@ -69,7 +69,7 @@ const config = async (): Promise<NextConfig> => {
     // se usa imagens remotas, configura domains aqui
     // images: { remotePatterns: [...] }
 
-    // ----- Novas configurações ----
+    // ---- Novas configurações ----
     
     // Injeta o segredo buscado no processo de build
     // O frontend continuará lendo 'process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY'
